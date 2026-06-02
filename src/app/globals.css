@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap');
+
+:root {
+    --color-primary: #caaa37;
+    --color-secondary: #323232;
+    --color-background: #e8e8e8;
+    --color-secondary-text: #757575;
+    --color-secondary-border: #b6b6b6;
+    --color-white: rgb(255, 255, 255);
+    --color-black: #101010;
+    --color-text: #101010;
+
+    --color-secondary-darker: #323232;
+    --color-primary-button: #caaa37;
+    --color-primary-button-hover: #caaa37;
+
+    --font-heading-family: "Onest", sans-serif;
+    --font-heading-weight: bold;
+    --font-heading-size: 16px;
+
+    --font-body-family: "Onest", sans-serif;
+    --font-body-weight: normal;
+    --font-body-size: 16px;
+
+    --spacing-small: 12px;
+    --spacing-medium: 28px;
+    --spacing-large: 42px;
+    --spacing-extra-large: 48px;
+
+    --shadow-small: 0 2px 5px rgba(0,0,0,0.05);
+    --shadow-medium: 0 4px 10px rgba(0,0,0,0.1);
+    --shadow-large: 0 0 20px rgba(0,0,0,0.25);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-body-family);
+    color: var(--color-text);
+    background-color: var(--color-black);
+}
+
+button {
+    font-family: var(--font-body-family);
+}
+input, textarea {
+    font-family: var(--font-body-family);
+}
+html {
+     scroll-behavior: smooth;
+}

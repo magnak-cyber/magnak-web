@@ -1,0 +1,294 @@
+.projectsPage {
+    padding: 50px 20px 90px;
+    max-width: 1440px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.pageTitle {
+    font-size: 38px;
+    color: var(--color-white);
+    margin-bottom: 15px;
+    font-weight: 800;
+    text-shadow: 0 0 65px rgba(255, 255, 255, 0.5);
+}
+
+.pageDescription {
+    font-size: 1.2em;
+    color: var(--color-secondary-text);
+    margin-bottom: 60px;
+    line-height: 1.6;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.galleryGrid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.projectsNotice {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 24px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-secondary-text);
+}
+
+.galleryItem {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.galleryItem:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.galleryModalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.galleryModalContent {
+    position: relative;
+    width: 90vw;
+    max-width: 1400px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background-color: transparent;
+}
+
+.galleryCloseButton {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    cursor: pointer;
+    z-index: 1001;
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: 1px solid #595959;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.galleryCloseButton img {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+.galleryCloseButton:hover {
+    background-color: rgba(255, 255, 255, 0.95);
+}
+.closeButton:hover img {
+    transform: rotate(90deg);
+}
+
+.swiperContainer {
+    flex-grow: 1;
+    height: 100%;
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 12px;
+}
+
+.swiper-slide {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+}
+
+.swiperImage {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+}
+.swiperImageContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000;
+}
+
+.backgroundImage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(16px) brightness(0.75);
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+.foregroundImage {
+    position: relative;
+    z-index: 2;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.swiper-button-prev,
+.swiper-button-next {
+    color: transparent !important;
+    width: 50px !important;
+    height: 50px !important;
+    margin: 30px;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    z-index: 10;
+}
+
+.swiper-button-prev::after,
+.swiper-button-next::after {
+    content: '';
+    display: block;
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    background-image: url('/img/icons/downArrow.png');
+    background-size: 45%;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 1px solid #595959;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.swiper-button-prev::after {
+    transform: rotate(90deg);
+}
+
+.swiper-button-next::after {
+    transform: rotate(-90deg);
+}
+
+.swiper-button-prev:hover::after,
+.swiper-button-next:hover::after {
+    background-color: rgb(255, 255, 255);
+}
+
+.swiperThumbsContainer {
+    width: 100%;
+    height: 80px;
+    padding-bottom: 10px;
+}
+
+.swiperThumbImage {
+    width: calc(100%);
+    height: calc(100%);
+    object-fit: cover;
+    border-radius: 8px;
+    opacity: 0.6;
+    transition: opacity 0.3s ease, border 0.3s ease;
+    cursor: pointer;
+}
+
+.swiper-slide-thumb-active .swiperThumbImage {
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    opacity: 0.95;
+    border: 4px solid var(--color-primary);
+}
+
+@media (max-width: 768px) {
+    .projectsPage {
+        padding: 40px 15px;
+    }
+    .pageTitle {
+        font-size: 2.5em;
+    }
+    .pageDescription {
+        font-size: 1em;
+        margin-bottom: 40px;
+    }
+    .galleryGrid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .closeButton {
+        width: 30px;
+        height: 30px;
+        top: 10px;
+        right: 10px;
+    }
+    .galleryModalContent {
+        width: 98vw;
+        height: 98vh;
+    }
+    .swiper-button-prev,
+    .swiper-button-next {
+        width: 40px;
+        height: 40px;
+        margin: 0 10px;
+    }
+    .swiperThumbsContainer {
+        height: 60px;
+    }
+}
+@media (max-width: 640px) {
+    .galleryGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+}
+@media (max-width: 440px) {
+    .galleryGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 770px) {
+    .galleryCloseButton {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+}
+@media (max-width: 600px) {
+    .swiperImage {
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+        height: 50vh;
+    }
+}
+@media (max-width: 450px) {
+    .swiperImage {
+        height: 35vh;
+    }
+}

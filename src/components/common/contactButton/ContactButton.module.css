@@ -1,0 +1,60 @@
+.contactButton {
+    padding: var(--spacing-small) var(--spacing-medium);
+    background-color: var(--color-primary-button);
+    color: var(--color-white);
+    font-family: var(--font-body-family);
+    font-size: var(--font-heading-size);
+    border: none;
+    font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.contactButton:hover {
+    background-color: var(--color-primary-button-hover);
+}
+.blockedNotice {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translate(-50%, -120%);
+    background: rgba(39, 39, 39, 0.65);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(12px) saturate(120%);
+    background-clip: padding-box;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    z-index: 12000;
+    max-width: calc(100% - 48px);
+    text-align: center;
+    opacity: 0;
+    transition: transform 320ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
+}
+
+/* visible state - slide down */
+.show {
+    transform: translate(-50%, 0%);
+    opacity: 1;
+}
+
+/* hide state - slide up */
+.hide {
+    transform: translate(-50%, -120%);
+    opacity: 0;
+}
+
+/* overlay used by modal form (if present in file) */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 11000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+}

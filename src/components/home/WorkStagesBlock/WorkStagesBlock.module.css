@@ -1,0 +1,138 @@
+.workStagesSection {
+    padding: 60px 40px 120px;
+    background-color: var(--color-black);
+    color: #f0f0f0;
+    text-align: center;
+}
+
+.sectionTitle {
+    font-size: 28px;
+    color: var(--color-white);
+    margin-bottom: 50px;
+    font-weight: 700;
+    text-shadow: 0 0 65px rgba(255, 255, 255, 0.5);
+}
+
+.stagesContainer {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 30px;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.stageBlock {
+    position: relative;
+    background-color: var(--color-black);
+    border: 1px solid rgba(57, 57, 57, 0.35);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    border-radius: 12px;
+    padding: 30px 35px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    transition: transform 0.3s ease;
+}
+
+.stageNumber {
+    font-size: 4.5em;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+.stageTitle {
+    font-size: 24px;
+    color: var(--color-white);
+    font-weight: 700;
+    margin-bottom: 140px;
+}
+
+.stageDescription {
+    font-size: 16px;
+    color: var(--color-secondary-text);
+    line-height: 1.1;
+    flex-grow: 1;
+    position: absolute;
+    bottom: 30px;
+    left: 35px;
+    margin: 0 40px 0 0;
+}
+
+@media (max-width: 1400px) {
+    .stagesContainer {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .stageTitle {
+        font-size: 24px;
+        color: var(--color-white);
+        font-weight: 700;
+        margin-bottom: 90px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .stagesContainer {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+    .stageBlock {
+        padding: 30px;
+    }
+    .sectionTitle {
+        font-size: 28px;
+    }
+    .stageDescription {
+        bottom: 30px;
+        left: 30px;
+        margin: 0 30px 0 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .stagesContainer {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .stageBlock {
+        padding: 25px;
+    }
+    .sectionTitle {
+        font-size: 26px;
+        margin-bottom: 40px;
+    }
+    .stageNumber {
+        font-size: 4em;
+    }
+    .stageDescription {
+        bottom: 20px;
+        left: 20px;
+        margin: 0 20px 0 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .workStagesSection {
+        padding: 60px 20px;
+    }
+    .stageDescription {
+        bottom: 30px;
+        left: 20px;
+        margin: 0 20px 0 0;
+    }
+    .sectionTitle {
+        font-size: 26px;
+    }
+    .stageNumber {
+        font-size: 3.5em;
+    }
+    .stageTitle {
+        font-size: 1.4em;
+    }
+    .stageDescription {
+        font-size: 1em;
+    }
+}

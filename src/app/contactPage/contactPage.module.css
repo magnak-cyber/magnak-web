@@ -1,0 +1,387 @@
+
+.contactFormContainer {
+    position: relative;
+    background: white;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+}
+
+.contactUsTitle {
+    position: absolute;
+    top: 0;
+    left: 24px;
+    color: var(--color-text);
+}
+
+.closeButton {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeButton img {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.closeButton:hover img {
+    transform: rotate(90deg);
+}
+
+
+.contactFormContainer h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+
+.formGroup {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.label {
+    display: block;
+    display: flex;
+    align-self: flex-start;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+.input,
+.select {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid var(--color-secondary-border);
+    border-radius: 7px;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+.textarea {
+    min-height: 100px;
+    max-height: 200px;
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid var(--color-secondary-border);
+    border-radius: 7px;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(189, 159, 74, 0.25);
+}
+
+.textarea {
+    resize: vertical;
+}
+
+.fileInputContainer {
+    text-align: left;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-self: flex-start;
+    align-items: flex-start;
+    gap: 0.5rem;
+    color: var(--color-secondary-border);;
+}
+
+.fileInputLabel {
+    width: calc(100%);
+    display: block;
+    padding: 12px 0;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 7px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.fileInputLabel:hover {
+    background-color: var(--color-primary);
+}
+
+.fileInput {
+    width: 100%;
+    display: none;
+}
+
+.fileName {
+    font-size: 0.9rem;
+    color: var(--color-secondary-text);
+    word-break: break-all;
+}
+
+.formNavigation {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    gap: 1rem;
+}
+.blockedNotice {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translate(-50%, -120%);
+    background: rgba(39, 39, 39, 0.65);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    backdrop-filter: blur(12px) saturate(120%);
+    background-clip: padding-box;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    z-index: 12000;
+    width: calc(100% - 68px);
+    max-width: calc(100%);
+    text-align: center;
+    opacity: 0;
+    transition: transform 320ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
+}
+
+/* visible state - slide down */
+.show {
+    transform: translate(-50%, 0%);
+    opacity: 1;
+}
+
+/* hide state - slide up */
+.hide {
+    transform: translate(-50%, -120%);
+    opacity: 0;
+}
+.navButton,
+.submitButton {
+    flex: 1;
+    padding: 0.8rem 1.2rem;
+    border: none;
+    font-family: var(--font-body-family);
+    border-radius: 7px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.navButton {
+    background-color: var(--color-primary);
+    color: white;
+}
+.navBackButton{
+    flex: 1;
+    padding: 0.8rem 1.2rem;
+    border: 2px solid var(--color-primary);
+    font-family: var(--font-body-family);
+    border-radius: 7px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    background-color: #ffffff;
+    color: var(--color-primary);
+}
+.submitButton {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.submitButton:hover {
+    background-color: var(--color-primary);
+}
+
+.submitButton:disabled {
+    background-color: rgba(189, 159, 74, 0.5);
+    cursor: not-allowed;
+}
+
+.successMessage {
+    color: #28a745;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.errorMessage {
+    color: #dc3545;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.progressNav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 60px 0 25px;
+    padding: 0;
+}
+
+.progressStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ccc;
+    transition: color 0.3s ease;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.progressStep.activeStep {
+    color: var(--color-primary);
+    pointer-events: auto;
+}
+
+.stepIcon {
+    width: 34px;
+    height: 34px;
+    filter: grayscale(100%);
+    opacity: 0.3;
+
+    transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.progressStep.activeStep .stepIcon {
+    filter: grayscale(0%);
+    opacity: 1;
+    cursor: pointer;
+}
+
+.progressLine {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #eee;
+    margin: 0 10px;
+    transition: background-color 0.3s ease;
+}
+
+.progressStep.activeStep + .progressLine {
+    background-color: var(--color-black);
+}
+.dropdownContainer {
+    position: relative;
+    width: 100%;
+}
+
+.dropdownButton {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid var(--color-secondary-border);
+    border-radius: 7px;
+    background-color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--color-text);
+    text-align: left;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dropdownButton:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(189, 159, 74, 0.25);
+}
+
+.dropdownArrow {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.3s ease;
+    filter: none;
+    margin-left: 10px;
+}
+
+.arrowOpen {
+    transform: rotate(180deg);
+}
+
+.dropdownMenuContactForm {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    min-width: 100%;
+    z-index: 10;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+}
+
+.dropdownMenuItem {
+    width: 100%;
+    display: flex;
+    align-self: flex-start;
+}
+
+.dropdownLink {
+    width: 100%;
+    display: flex;
+    align-self: flex-start;
+    padding: 8px 16px;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.dropdownLink:hover {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.checkbox {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    vertical-align: middle;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}
+
+.checkboxLabel {
+    font-size: 0.9em;
+    color: #555;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.submitButton:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}

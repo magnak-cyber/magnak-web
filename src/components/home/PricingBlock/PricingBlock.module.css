@@ -1,0 +1,168 @@
+.pricingSection {
+    display: flex;
+    min-height: 600px;
+    margin: 50px 0 30px;
+}
+.categoryDetailsBlock {
+
+}
+.sectionTitle {
+    font-size: 28px;
+    color: var(--color-white);
+    margin-bottom: 40px;
+    font-weight: 700;
+    text-shadow: 0 0 65px rgba(255, 255, 255, 0.5);
+}
+.sectionText {
+    font-size: 16px;
+    color: var(--color-secondary-text);
+    margin-bottom: 40px;
+    font-weight: 500;
+}
+
+.plansContainer {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    padding: 0 20px;
+}
+
+.planCard {
+    flex-basis: calc(33.333% - 20px);
+    min-width: 280px;
+    max-width: 380px;
+    background: var(--color-black);
+    border: 1px solid var(--color-primary);
+    border-radius: 12px;
+    padding: 20px 30px 10px;
+    text-align: center;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.planCard:hover {
+    transform: translateY(-10px);
+}
+
+.planName {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-white);
+    margin-bottom: 20px;
+}
+
+.planPrice {
+    font-size: 3.5em;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin: 44px 0 30px;
+    line-height: 1;
+}
+
+.planFeatures {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 30px;
+    text-align: left;
+    flex-grow: 1;
+}
+
+.planFeatures li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 20px;
+    font-size: 16px;
+    color: var(--color-background);
+    line-height: 1.1;
+}
+
+.planFeatures li::before {
+    content: '✓';
+    color: var(--color-primary);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+.featureDash {
+    font-size: 1.05em;
+    color: #aaa;
+    margin-bottom: 8px;
+    opacity: 0.7;
+}
+
+.learnMoreButton {
+    padding: 15px 30px;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: 600;
+    width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .planCard {
+        flex-basis: calc(50% - 20px);
+    }
+}
+@media (max-width: 768px) {
+    .plansContainer {
+        flex-direction: column;
+        min-height: auto;
+    }
+    .planCard {
+        flex-basis: 90%;
+        max-width: 400px;
+        padding: 20px 30px;
+    }
+    .sectionTitle {
+        font-size: 28px;
+        margin-bottom: 40px;
+    }
+    .planName {
+        font-size: 24px;
+    }
+    .planPrice {
+        font-size: 3em;
+        margin: 36px 0 25px;
+    }
+    .learnMoreButton {
+        font-size: 1.1em;
+        padding: 12px 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pricingSection {
+        padding: 60px 0;
+    }
+    .sectionTitle {
+        font-size: 26px;
+        margin-bottom: 30px;
+    }
+    .planCard {
+        padding: 5px 25px;
+    }
+    .planName {
+        font-size: 24px;
+    }
+    .planPrice {
+        margin: 34px 0 22px;
+        font-size: 2.8em;
+    }
+    .planFeatures li {
+        font-size: 1em;
+    }
+}
+@media (max-width: 380px) {
+    .planCard {
+        padding: 5px 15px;
+    }
+}

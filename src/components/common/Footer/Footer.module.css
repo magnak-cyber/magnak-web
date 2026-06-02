@@ -1,0 +1,139 @@
+.footer {
+    background: rgba(11, 11, 11, 0.45);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    backdrop-filter: blur(10px) saturate(120%);
+    background-clip: padding-box;
+    color: var(--color-white);
+    padding: 40px 60px 30px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    position: relative;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-family: var(--font-body-family);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
+    transition: background 200ms ease, box-shadow 200ms ease;
+}
+
+.logoSection {
+    margin-bottom: 16px;
+}
+
+.logo {
+    margin: 0;
+    color: var(--color-white);
+    font-family: var(--font-heading-family);
+    font-weight: var(--font-heading-weight);
+    font-size: 1.8rem;
+}
+.logoImg {
+    width: 78px;
+    margin: -10px 0 0;
+}
+.nav {
+    margin-bottom: 16px;
+}
+
+.navList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.navItem {
+    margin-bottom: 8px;
+}
+
+.navLink {
+    text-decoration: none;
+    color: var(--color-white);
+    transition: color 0.3s ease;
+}
+
+.navLink:hover {
+    color: var(--color-primary);
+}
+
+.contactSection {
+    text-align: left;
+}
+.subLinks {
+    font-size: 14px;
+    position: absolute;
+    bottom: 24px;
+    color: var(--color-secondary-text);
+}
+.subLinks span{
+    margin: 0 6px;
+}
+.subLink {
+    text-decoration: none;
+    color: var(--color-secondary-text);
+    transition: color 0.3s ease;
+}
+
+.subLink:hover {
+    color: var(--color-primary);
+}
+
+.contactItem {
+    display: flex;
+    align-items: center;
+    font-weight: 400;
+    margin-bottom: 12px;
+    color: var(--color-white);
+    text-decoration: underline;
+    transition: opacity 0.3s ease;
+}
+
+.contactItem:hover {
+    opacity: 0.8;
+}
+
+.contactIcon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    filter: invert(100%);
+}
+
+.contactButton {
+    margin-top: 16px;
+    padding: var(--spacing-small) var(--spacing-medium);
+    background-color: var(--color-primary-button);
+    color: var(--color-white);
+    border: none;
+    border-radius: 7px;
+    font-size: var(--font-body-size);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.contactButton:hover {
+    background-color: var(--color-primary-button-hover);
+}
+
+@media (max-width: 650px) {
+    .footer {
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+    .nav {
+        margin-bottom: 28px;
+    }
+    .contactSection {
+        text-align: left;
+        margin-bottom: 34px;
+    }
+}
+@media (max-width: 300px) {
+    .subLinks {
+        text-wrap: wrap;
+    }
+    .contactSection {
+        text-align: left;
+        margin-bottom: 44px;
+    }
+}

@@ -1,0 +1,98 @@
+export const CATEGORIES = [
+    { slug: 'finishes', nameKey: 'categories.interiorFinishes' },
+    { slug: 'bathroom', nameKey: 'categories.bathroom' },
+    { slug: 'renovations', nameKey: 'categories.renovations' },
+    { slug: 'naturalstone', nameKey: 'categories.naturalStone' },
+    { slug: 'kitchen', nameKey: 'categories.kitchen' },
+    { slug: 'terraces', nameKey: 'categories.terraces' },
+    { slug: 'rooms', nameKey: 'categories.rooms' },
+    { slug: 'fences', nameKey: 'categories.fences' },
+];
+
+export const EXTENDED_CATEGORIES = [
+  {
+    slug: 'kitchen',
+    nameKey: 'categories.kitchen',
+    bgImage: '/img/backgrounds/KitchenBg.jpg',
+    promoTitleKey: 'kitchen.promoTitle',
+    promoDescriptionKey: 'kitchen.promoDescription',
+    detailedImage: '/img/backgrounds/promoKitchenBg.jpg',
+    detailedTitleKey: 'kitchen.detailedTitle',
+    detailedDescriptionKey: 'kitchen.detailedDescription',
+  },
+
+  {
+    slug: 'bathroom',
+    nameKey: 'categories.bathroom',
+    bgImage: '/img/backgrounds/BathroomBg.jpg',
+    promoTitleKey: 'bathroom.promoTitle',
+    promoDescriptionKey: 'bathroom.promoDescription',
+    detailedImage: '/img/backgrounds/promoBathroomBg.jpg',
+    detailedTitleKey: 'bathroom.detailedTitle',
+    detailedDescriptionKey: 'bathroom.detailedDescription',
+  },
+    {
+        slug: 'naturalstone',
+        nameKey: 'categories.naturalStone',
+        bgImage: '/img/backgrounds/naturalstoneBg.png',
+        promoTitleKey: 'naturalStone.promoTitle',
+        promoDescriptionKey: 'naturalStone.promoDescription',
+        detailedImage: '/img/backgrounds/naturalstoneBg.png',
+        detailedTitleKey: 'naturalStone.detailedTitle',
+        detailedDescriptionKey: 'naturalStone.detailedDescription',
+    },
+  {
+    slug: 'rooms',
+    nameKey: 'categories.rooms',
+    bgImage: '/img/backgrounds/RoomsBg.jpg',
+    promoTitleKey: 'rooms.promoTitle',
+    promoDescriptionKey: 'rooms.promoDescription',
+    detailedImage: '/img/backgrounds/promoBedroomBg.jpg',
+    detailedTitleKey: 'rooms.detailedTitle',
+    detailedDescriptionKey: 'rooms.detailedDescription',
+  },
+    {
+        slug: 'finishes',
+        nameKey: 'categories.interiorFinishes',
+        bgImage: '/img/backgrounds/FinishesBg.webp',
+        promoTitleKey: 'interiorFinishes.promoTitle',
+        promoDescriptionKey: 'interiorFinishes.promoDescription',
+        detailedImage: '/img/backgrounds/promoFinishesBg.jpg',
+        detailedTitleKey: 'interiorFinishes.detailedTitle',
+        detailedDescriptionKey: 'interiorFinishes.detailedDescription',
+    },
+    {
+        slug: 'renovations',
+        nameKey: 'categories.renovations',
+        bgImage: '/img/backgrounds/RenovationsBg.jpg',
+        promoTitleKey: 'renovations.promoTitle',
+        promoDescriptionKey: 'renovations.promoDescription',
+        detailedImage: '/img/backgrounds/promoRenovationBg.jpg',
+        detailedTitleKey: 'renovations.detailedTitle',
+        detailedDescriptionKey: 'renovations.detailedDescription',
+    },
+    {
+        slug: 'terraces',
+        nameKey: 'categories.terraces',
+        bgImage: '/img/backgrounds/TerraceBg.avif',
+        promoTitleKey: 'terraces.promoTitle',
+        promoDescriptionKey: 'terraces.promoDescription',
+        detailedImage: '/img/backgrounds/promoTerraceBg.webp',
+        detailedTitleKey: 'terraces.detailedTitle',
+        detailedDescriptionKey: 'terraces.detailedDescription',
+    },
+    {
+        slug: 'fences',
+        nameKey: 'categories.fences',
+        bgImage: '/img/backgrounds/FenceBg.jpg',
+        promoTitleKey: 'fences.promoTitle',
+        promoDescriptionKey: 'fences.promoDescription',
+        detailedImage: '/img/backgrounds/promoFenceBg.jpg',
+        detailedTitleKey: 'fences.detailedTitle',
+        detailedDescriptionKey: 'fences.detailedDescription',
+    },
+];
+
+export const SITE_NAME = 'N&B Interiors';
+export const CONTACT_EMAIL = 'wykonczenia.nbgroup@gmail.com';
+export const COMPANY_NAME = 'N&B Interiors';
