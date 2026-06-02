@@ -1,9 +1,12 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import { Collection } from 'mongodb';
+import { getDb } from '@/lib/mongodb';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const AUTH_STORE_PATH = path.join(DATA_DIR, 'admin-auth.json');
+const OTP_COLLECTION_NAME = 'admin_otps';
 const OTP_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
@@ -18,6 +21,12 @@ interface PendingOtp {
 interface AuthStore {
   pendingOtp: PendingOtp | null;
 }
+
+type GlobalAdminAuth = typeof globalThis & {
+  _adminAuthMemoryStore?: AuthStore;
+};
+
+const globalForAdminAuth = globalThis as GlobalAdminAuth;
 
 function getSessionSecret() {
   return process.env.ADMIN_SESSION_SECRET || process.env.EMAIL_PASS || 'change-this-session-secret';
@@ -79,6 +88,27 @@ function decodePayload(value: string) {
   return JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as Record<string, unknown>;
 }
 
+function shouldUseMongoOtpStore() {
+  return Boolean(process.env.MONGODB_URI);
+}
+
+function shouldUseMemoryOtpStore() {
+  return !shouldUseMongoOtpStore() && process.env.VERCEL === '1';
+}
+
+function getMemoryAuthStore(): AuthStore {
+  if (!globalForAdminAuth._adminAuthMemoryStore) {
+    globalForAdminAuth._adminAuthMemoryStore = { pendingOtp: null };
+  }
+
+  return globalForAdminAuth._adminAuthMemoryStore;
+}
+
+async function getOtpCollection(): Promise<Collection<PendingOtp>> {
+  const db = await getDb();
+  return db.collection<PendingOtp>(OTP_COLLECTION_NAME);
+}
+
 async function ensureAuthStore() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
@@ -100,18 +130,43 @@ async function writeAuthStore(store: AuthStore) {
   await fs.writeFile(AUTH_STORE_PATH, JSON.stringify(store, null, 2), 'utf8');
 }
 
+async function persistFallbackAuthStore(store: AuthStore) {
+  if (shouldUseMemoryOtpStore()) {
+    globalForAdminAuth._adminAuthMemoryStore = store;
+    return;
+  }
+
+  await writeAuthStore(store);
+}
+
 export async function createEmailOtp(email: string): Promise<string> {
   const normalizedEmail = email.trim().toLowerCase();
   const code = generateOtpCode();
-  const store = await readAuthStore();
-
-  store.pendingOtp = {
+  const nextOtp: PendingOtp = {
     email: normalizedEmail,
     codeHash: hashCode(code),
     expiresAt: Date.now() + OTP_TTL_MS,
     attemptsLeft: MAX_OTP_ATTEMPTS,
   };
 
+  if (shouldUseMongoOtpStore()) {
+    const collection = await getOtpCollection();
+    await collection.updateOne(
+      { email: normalizedEmail },
+      { $set: nextOtp },
+      { upsert: true }
+    );
+    return code;
+  }
+
+  if (shouldUseMemoryOtpStore()) {
+    const store = getMemoryAuthStore();
+    store.pendingOtp = nextOtp;
+    return code;
+  }
+
+  const store = await readAuthStore();
+  store.pendingOtp = nextOtp;
   await writeAuthStore(store);
   return code;
 }
@@ -119,7 +174,47 @@ export async function createEmailOtp(email: string): Promise<string> {
 export async function verifyEmailOtp(email: string, code: string): Promise<boolean> {
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedCode = code.trim();
-  const store = await readAuthStore();
+
+  if (shouldUseMongoOtpStore()) {
+    const collection = await getOtpCollection();
+    const pending = await collection.findOne({ email: normalizedEmail });
+
+    if (!pending) {
+      return false;
+    }
+
+    if (Date.now() > pending.expiresAt) {
+      await collection.deleteOne({ email: normalizedEmail });
+      return false;
+    }
+
+    if (pending.attemptsLeft <= 0) {
+      await collection.deleteOne({ email: normalizedEmail });
+      return false;
+    }
+
+    const isValid = hashCode(normalizedCode) === pending.codeHash;
+
+    if (!isValid) {
+      const nextAttemptsLeft = pending.attemptsLeft - 1;
+
+      if (nextAttemptsLeft <= 0) {
+        await collection.deleteOne({ email: normalizedEmail });
+      } else {
+        await collection.updateOne(
+          { email: normalizedEmail },
+          { $set: { attemptsLeft: nextAttemptsLeft } }
+        );
+      }
+
+      return false;
+    }
+
+    await collection.deleteOne({ email: normalizedEmail });
+    return true;
+  }
+
+  const store = shouldUseMemoryOtpStore() ? getMemoryAuthStore() : await readAuthStore();
   const pending = store.pendingOtp;
 
   if (!pending) {
@@ -128,13 +223,13 @@ export async function verifyEmailOtp(email: string, code: string): Promise<boole
 
   if (pending.email !== normalizedEmail || Date.now() > pending.expiresAt) {
     store.pendingOtp = null;
-    await writeAuthStore(store);
+    await persistFallbackAuthStore(store);
     return false;
   }
 
   if (pending.attemptsLeft <= 0) {
     store.pendingOtp = null;
-    await writeAuthStore(store);
+    await persistFallbackAuthStore(store);
     return false;
   }
 
@@ -147,12 +242,12 @@ export async function verifyEmailOtp(email: string, code: string): Promise<boole
     } else {
       store.pendingOtp = pending;
     }
-    await writeAuthStore(store);
+    await persistFallbackAuthStore(store);
     return false;
   }
 
   store.pendingOtp = null;
-  await writeAuthStore(store);
+  await persistFallbackAuthStore(store);
   return true;
 }
 
