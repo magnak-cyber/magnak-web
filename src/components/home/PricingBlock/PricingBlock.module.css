@@ -37,14 +37,10 @@
     border-radius: 12px;
     padding: 20px 30px 10px;
     text-align: center;
-    transition: transform 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-}
-
-.planCard:hover {
-    transform: translateY(-10px);
 }
 
 .planName {

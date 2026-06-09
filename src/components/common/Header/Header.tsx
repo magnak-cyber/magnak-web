@@ -9,11 +9,13 @@ import { CATEGORIES } from '@/constants';
 import { DropdownMenu } from '@/components/ui/DropdownMenu/DropdownMenu';
 import styles from './Header.module.css';
 import {ContactButton} from "@/components/common/contactButton/ContactButton";
+import { usePublicSiteSettings } from '@/hooks/usePublicSiteSettings';
 
 export const Header: React.FC = () => {
   const { t, locale } = useTranslation();
   const { setLocale } = useLanguageStore();
   const pathname = usePathname();
+  const siteSettings = usePublicSiteSettings();
 
   const [isRepairTypesDropdownOpen, setIsRepairTypesDropdownOpen] = useState(false);
   const repairTypesButtonRef = useRef<HTMLButtonElement>(null);
@@ -114,8 +116,8 @@ export const Header: React.FC = () => {
       <Link href="/" onClick={() => setIsBurgerMenuOpen(false)}>
         <h2 className={styles.logo}>
           <img
-            src="/img/logo/LogoStronaPrzezroczyste.png"
-            alt="logo"
+            src={siteSettings.logoUrl}
+            alt={`${siteSettings.companyName} logo`}
             className={`${styles.logoImg}`}
           />
         </h2>
@@ -132,13 +134,19 @@ export const Header: React.FC = () => {
         <span className={styles.burgerLine}></span>
       </button>
 
+      <div
+        className={`${styles.navBackdrop} ${isBurgerMenuOpen ? styles.navBackdropOpen : ''}`}
+        onClick={() => setIsBurgerMenuOpen(false)}
+        aria-hidden="true"
+      />
+
       <nav id="main-navigation" className={`${styles.nav} ${isBurgerMenuOpen ? styles.navOpen : ''}`}>
         <div className={styles.mobileNavHeader}>
           <Link href="/" onClick={() => setIsBurgerMenuOpen(false)}>
             <h2 className={styles.mobileLogo}>
               <img
-                src="/img/logo/LogoStronaPrzezroczyste.png"
-                alt="logo"
+                src={siteSettings.logoUrl}
+                alt={`${siteSettings.companyName} logo`}
                 className={`${styles.logoImg}`}
               />
             </h2>
@@ -163,6 +171,7 @@ export const Header: React.FC = () => {
                     triggerRef={repairTypesButtonRef}
                     onClose={handleCloseAllDropdowns}
                     dropdownType="repairTypes"
+                    renderInPortal
                 >
                     {CATEGORIES.map((category: { slug: React.Key | null | undefined; nameKey: string; }) => (
                         <li key={category.slug} className={styles.dropdownMenuItem}>
@@ -195,6 +204,7 @@ export const Header: React.FC = () => {
                     triggerRef={languageButtonRef}
                     onClose={handleCloseAllDropdowns}
                     dropdownType="language"
+                    renderInPortal
                 >
                     {['en', 'ua', 'pl'].map((lang) => (
                         <li key={lang} className={styles.dropdownMenuItem}>
@@ -239,7 +249,7 @@ export const Header: React.FC = () => {
 
 
           <li className={`${styles.navItem} ${styles['navLink-last-btn']}`}>
-            <ContactButton />
+            <ContactButton className={styles.menuContactButton} onTrigger={() => setIsBurgerMenuOpen(false)} />
           </li>
         </ul>
       </nav>

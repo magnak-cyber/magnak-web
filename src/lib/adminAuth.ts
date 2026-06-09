@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Collection } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
+import { getAllowedAdminEmails } from '@/lib/siteSettingsStore';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const AUTH_STORE_PATH = path.join(DATA_DIR, 'admin-auth.json');
@@ -37,7 +38,7 @@ export function getAdminEmail() {
     process.env.ADMIN_EMAIL?.trim().toLowerCase() ||
     process.env.EMAIL_RECEIVER?.trim().toLowerCase() ||
     process.env.EMAIL_USER?.trim().toLowerCase() ||
-    'wykonczenia.nbgroup@gmail.com'
+    'magnakglazurnictwo@gmail.com'
   );
 }
 
@@ -62,9 +63,10 @@ export function getAdminEmails() {
   return [getAdminEmail()];
 }
 
-export function validateAdminEmail(email: string) {
+export async function validateAdminEmail(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
-  return getAdminEmails().includes(normalizedEmail);
+  const allowedEmails = process.env.MONGODB_URI ? await getAllowedAdminEmails() : getAdminEmails();
+  return allowedEmails.includes(normalizedEmail);
 }
 
 function hashCode(code: string) {

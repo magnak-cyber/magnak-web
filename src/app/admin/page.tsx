@@ -4,10 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './page.module.css';
 import type { Order, OrderStatus } from '@/types/orders';
 import type { ProjectImageListItem } from '@/types/project-images';
+import type { AdminSiteSettings } from '@/types/site-settings';
 import { DropdownMenu } from '@/components/ui/DropdownMenu/DropdownMenu';
 
 type AuthStep = 'email' | 'code' | 'ready';
-type AdminSection = 'orders' | 'gallery';
+type AdminSection = 'orders' | 'gallery' | 'company';
+const orderPageSizeOptions = [10, 25, 50] as const;
+const statusFilterOptions: Array<'all' | OrderStatus> = ['all', 'new', 'in_progress', 'completed', 'cancelled'];
 
 const statusOptions: { value: OrderStatus; label: string }[] = [
   { value: 'new', label: 'Nowy' },
@@ -37,6 +40,17 @@ const emptyCreateState = {
   status: 'new' as OrderStatus,
 };
 
+const emptyCompanyState: AdminSiteSettings = {
+  companyName: 'Magnak Wykończenia',
+  notificationEmail: 'magnakglazurnictwo@gmail.com',
+  publicEmail: 'magnakglazurnictwo@gmail.com',
+  publicPhone: '+48 691 790 400',
+  adminEmails: ['magnakglazurnictwo@gmail.com'],
+  logoUrl: '/img/logo/LogoStronaPrzezroczyste.png',
+  faviconUrl: '/img/logo/LogoFav.png',
+  updatedAt: '',
+};
+
 export default function AdminPage() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -57,18 +71,60 @@ export default function AdminPage() {
   const [projectUploadLoading, setProjectUploadLoading] = useState(false);
   const [projectImageBusyId, setProjectImageBusyId] = useState<string | null>(null);
   const [projectImageBusyAction, setProjectImageBusyAction] = useState<'rotate' | 'delete' | null>(null);
+  const [companySettings, setCompanySettings] = useState<AdminSiteSettings>(emptyCompanyState);
+  const [companySettingsLoading, setCompanySettingsLoading] = useState(false);
+  const [companySettingsSaving, setCompanySettingsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<AdminSection>('orders');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPerPage, setOrdersPerPage] = useState<(typeof orderPageSizeOptions)[number]>(10);
+  const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [sortField, setSortField] = useState<'date' | 'status'>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
   const projectFileInputRef = useRef<HTMLInputElement>(null);
   const projectFolderInputRef = useRef<HTMLInputElement>(null);
   const statusButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const statusFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const pageSizeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const sortedOrders = useMemo(
-    () =>
-      [...orders].sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }),
-    [orders]
-  );
+  const filteredAndSortedOrders = useMemo(() => {
+    const filteredOrders =
+      statusFilter === 'all' ? [...orders] : orders.filter((order) => order.status === statusFilter);
+
+    const statusOrderMap = new Map<OrderStatus, number>([
+      ['new', 0],
+      ['in_progress', 1],
+      ['completed', 2],
+      ['cancelled', 3],
+    ]);
+
+    return filteredOrders.sort((left, right) => {
+      if (sortField === 'status') {
+        const leftRank = statusOrderMap.get(left.status) ?? 0;
+        const rightRank = statusOrderMap.get(right.status) ?? 0;
+        const statusDiff = leftRank - rightRank;
+
+        if (statusDiff !== 0) {
+          return sortDirection === 'asc' ? statusDiff : -statusDiff;
+        }
+      }
+
+      const dateDiff = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+
+      if (dateDiff !== 0) {
+        return sortField === 'date' && sortDirection === 'asc' ? dateDiff : -dateDiff;
+      }
+
+      return 0;
+    });
+  }, [orders, sortDirection, sortField, statusFilter]);
+
+  const totalOrderPages = Math.max(1, Math.ceil(filteredAndSortedOrders.length / ordersPerPage));
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (ordersPage - 1) * ordersPerPage;
+    return filteredAndSortedOrders.slice(startIndex, startIndex + ordersPerPage);
+  }, [filteredAndSortedOrders, ordersPage, ordersPerPage]);
 
   useEffect(() => {
     const init = async () => {
@@ -98,27 +154,47 @@ export default function AdminPage() {
   }, [activeSection, authStep, projectImages.length, projectImagesLoading]);
 
   useEffect(() => {
+    if (authStep === 'ready' && activeSection === 'company' && !companySettingsLoading && !companySettings.updatedAt) {
+      void fetchCompanySettings();
+    }
+  }, [activeSection, authStep, companySettings.updatedAt, companySettingsLoading]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!openStatusDropdownId) {
-        return;
+      const target = event.target as Node;
+      const trigger = openStatusDropdownId ? statusButtonRefs.current[openStatusDropdownId] : null;
+      const dropdown = openStatusDropdownId
+        ? document.querySelector(`[data-dropdown-type="status-${openStatusDropdownId}"]`)
+        : null;
+      const statusFilterDropdown = document.querySelector('[data-dropdown-type="orders-status-filter"]');
+      const pageSizeDropdown = document.querySelector('[data-dropdown-type="orders-page-size"]');
+
+      if (openStatusDropdownId && trigger && !trigger.contains(target) && (!dropdown || !dropdown.contains(target))) {
+        setOpenStatusDropdownId(null);
       }
 
-      const trigger = statusButtonRefs.current[openStatusDropdownId];
-      const target = event.target as Node;
-      const dropdown = document.querySelector(`[data-dropdown-type="status-${openStatusDropdownId}"]`);
+      if (
+        isStatusFilterOpen &&
+        statusFilterButtonRef.current &&
+        !statusFilterButtonRef.current.contains(target) &&
+        (!statusFilterDropdown || !statusFilterDropdown.contains(target))
+      ) {
+        setIsStatusFilterOpen(false);
+      }
 
       if (
-        trigger &&
-        !trigger.contains(target) &&
-        (!dropdown || !dropdown.contains(target))
+        isPageSizeOpen &&
+        pageSizeButtonRef.current &&
+        !pageSizeButtonRef.current.contains(target) &&
+        (!pageSizeDropdown || !pageSizeDropdown.contains(target))
       ) {
-        setOpenStatusDropdownId(null);
+        setIsPageSizeOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openStatusDropdownId]);
+  }, [isPageSizeOpen, isStatusFilterOpen, openStatusDropdownId]);
 
   useEffect(() => {
     const input = projectFolderInputRef.current;
@@ -130,12 +206,22 @@ export default function AdminPage() {
     input.setAttribute('directory', '');
   }, [activeSection]);
 
+  useEffect(() => {
+    setOrdersPage((current) => Math.min(current, totalOrderPages));
+  }, [totalOrderPages]);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [ordersPerPage, sortDirection, sortField, statusFilter]);
+
   async function fetchOrders() {
     setOrdersLoading(true);
     setError('');
 
     try {
-      const response = await fetch('/api/admin/orders');
+      const response = await fetch(`/api/admin/orders?ts=${Date.now()}`, {
+        cache: 'no-store',
+      });
       if (!response.ok) {
         setError('Nie udalo sie zaladowac zamowien.');
         return;
@@ -143,6 +229,7 @@ export default function AdminPage() {
 
       const data = await response.json();
       setOrders(data.orders || []);
+      setOrdersPage(1);
     } catch {
       setError('Blad podczas ladowania zamowien.');
     } finally {
@@ -155,7 +242,9 @@ export default function AdminPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/admin/project-images');
+      const response = await fetch(`/api/admin/project-images?ts=${Date.now()}`, {
+        cache: 'no-store',
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -171,8 +260,100 @@ export default function AdminPage() {
     }
   }
 
+  async function fetchCompanySettings() {
+    setCompanySettingsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/admin/site-settings?ts=${Date.now()}`, {
+        cache: 'no-store',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Nie udalo sie zaladowac ustawien firmy.');
+        return;
+      }
+
+      setCompanySettings(data.settings || emptyCompanyState);
+    } catch {
+      setError('Blad podczas ladowania ustawien firmy.');
+    } finally {
+      setCompanySettingsLoading(false);
+    }
+  }
+
   function validateEmail(value: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
+  function refreshActiveSection() {
+    if (activeSection === 'orders') {
+      void fetchOrders();
+      return;
+    }
+
+    if (activeSection === 'gallery') {
+      void fetchProjectImages();
+      return;
+    }
+
+    void fetchCompanySettings();
+  }
+
+  function toggleDateSort() {
+    if (sortField === 'date') {
+      setSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+      return;
+    }
+
+    setSortField('date');
+    setSortDirection('desc');
+  }
+
+  function toggleStatusSort() {
+    if (sortField === 'status') {
+      setSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+      return;
+    }
+
+    setSortField('status');
+    setSortDirection('asc');
+  }
+
+  function getStatusFilterLabel() {
+    if (statusFilter === 'all') {
+      return 'Wszystkie';
+    }
+
+    return getStatusLabel(statusFilter);
+  }
+
+  function updateCompanyAdminEmail(index: number, value: string) {
+    setCompanySettings((prev) => ({
+      ...prev,
+      adminEmails: prev.adminEmails.map((email, currentIndex) => (currentIndex === index ? value : email)),
+    }));
+  }
+
+  function addCompanyAdminEmail() {
+    setCompanySettings((prev) => ({
+      ...prev,
+      adminEmails: [...prev.adminEmails, ''],
+    }));
+  }
+
+  function removeCompanyAdminEmail(index: number) {
+    setCompanySettings((prev) => {
+      if (prev.adminEmails.length <= 1) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        adminEmails: prev.adminEmails.filter((_, currentIndex) => currentIndex !== index),
+      };
+    });
   }
 
   async function requestCode() {
@@ -313,6 +494,7 @@ export default function AdminPage() {
       }
 
       setOrders((prev) => [data.order, ...prev]);
+      setOrdersPage(1);
       setCreateState(emptyCreateState);
       setIsCreateOpen(false);
     } catch {
@@ -476,6 +658,61 @@ export default function AdminPage() {
     }
   }
 
+  async function saveCompanySettings() {
+    setError('');
+    const normalizedAdminEmails = Array.from(
+      new Set(companySettings.adminEmails.map((email) => email.trim().toLowerCase()).filter(Boolean))
+    );
+
+    if (!companySettings.companyName.trim()) {
+      setError('Wpisz nazwe firmy.');
+      return;
+    }
+
+    if (!validateEmail(companySettings.notificationEmail) || !validateEmail(companySettings.publicEmail)) {
+      setError('Wpisz poprawne adresy email.');
+      return;
+    }
+
+    if (!normalizedAdminEmails.length) {
+      setError('Dodaj przynajmniej jeden email z dostepem do panelu.');
+      return;
+    }
+
+    if (normalizedAdminEmails.some((email) => !validateEmail(email))) {
+      setError('Lista emaili administratora zawiera niepoprawny adres.');
+      return;
+    }
+
+    setCompanySettingsSaving(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('companyName', companySettings.companyName);
+      formData.append('notificationEmail', companySettings.notificationEmail);
+      formData.append('publicEmail', companySettings.publicEmail);
+      formData.append('publicPhone', companySettings.publicPhone);
+      normalizedAdminEmails.forEach((adminEmail) => formData.append('adminEmails', adminEmail));
+
+      const response = await fetch('/api/admin/site-settings', {
+        method: 'PATCH',
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Nie udalo sie zapisac ustawien firmy.');
+        return;
+      }
+
+      setCompanySettings(data.settings || emptyCompanyState);
+    } catch {
+      setError('Nie udalo sie zapisac ustawien firmy.');
+    } finally {
+      setCompanySettingsSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className={styles.page}>
@@ -562,55 +799,109 @@ export default function AdminPage() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.floatingActions}>
+        {activeSection === 'orders' ? (
+          <button
+            type="button"
+            className={styles.floatingIconButton}
+            onClick={() => setIsCreateOpen((prev) => !prev)}
+            aria-label="Dodaj zamowienie"
+            title={isCreateOpen ? 'Ukryj formularz' : 'Dodaj zamowienie'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.floatingIconSvg}>
+              <path
+                d="M12 5v14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M5 12h14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={styles.floatingIconButton}
+          onClick={refreshActiveSection}
+          aria-label="Odswiez"
+          title="Odswiez"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.floatingIconSvg}>
+            <path
+              d="M20 12a8 8 0 1 1-2.34-5.66"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+            <path
+              d="M20 4v5h-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className={styles.floatingIconButton}
+          onClick={logout}
+          aria-label="Wyloguj"
+          title="Wyloguj"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.floatingIconSvg}>
+            <path
+              d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M16 17l5-5-5-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M21 12H9"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
-            {activeSection === 'orders' ? 'Zamowienia' : 'Galeria projektow'}
+            {activeSection === 'orders'
+              ? 'Zamowienia'
+              : activeSection === 'gallery'
+                ? 'Galeria projektow'
+                : 'Ustawienia firmy'}
           </h1>
           <p className={styles.subtitle}>
             {activeSection === 'orders'
               ? 'Wszystkie zamowienia z formularza kontaktowego.'
-              : 'Galeria projektow przechowywana jako dane pikseli w MongoDB.'}
+              : activeSection === 'gallery'
+                ? 'Galeria projektow przechowywana jako dane pikseli w MongoDB.'
+                : 'Zmieniaj nazwe firmy, logo oraz dane kontaktowe widoczne na stronie i w e-mailach.'}
           </p>
-        </div>
-        <div className={styles.headerActions}>
-          {activeSection === 'orders' ? (
-            <>
-              <button className={styles.buttonPrimary} onClick={() => setIsCreateOpen((prev) => !prev)}>
-                {isCreateOpen ? 'Ukryj formularz' : 'Dodaj zamowienie'}
-              </button>
-              <button className={styles.buttonGhost} onClick={fetchOrders}>
-                Odswiez
-              </button>
-            </>
-          ) : (
-            <>
-              <label className={styles.buttonPrimary}>
-                {projectUploadLoading ? 'Wgrywanie...' : 'Dodaj obrazy'}
-                <input
-                  ref={projectFileInputRef}
-                  type="file"
-                  accept=".png,.jpg,.jpeg"
-                  multiple
-                  className={styles.hiddenFileInput}
-                  onChange={uploadProjectImages}
-                  disabled={projectUploadLoading}
-                />
-              </label>
-              <button
-                className={styles.buttonGhost}
-                onClick={openProjectFolderPicker}
-              >
-                Importuj z folderu
-              </button>
-              <button className={styles.buttonGhost} onClick={fetchProjectImages}>
-                Odswiez
-              </button>
-            </>
-          )}
-          <button className={styles.buttonGhost} onClick={logout}>
-            Wyloguj
-          </button>
         </div>
       </div>
 
@@ -628,6 +919,13 @@ export default function AdminPage() {
           onClick={() => setActiveSection('gallery')}
         >
           Galeria projektow
+        </button>
+        <button
+          type="button"
+          className={`${styles.sectionNavButton} ${activeSection === 'company' ? styles.sectionNavActive : ''}`}
+          onClick={() => setActiveSection('company')}
+        >
+          Ustawienia firmy
         </button>
       </div>
 
@@ -741,7 +1039,6 @@ export default function AdminPage() {
             disabled={projectUploadLoading}
           />
         </div>
-        {projectImagesLoading ? <p className={styles.subtitle}>Ladowanie obrazow...</p> : null}
         <div className={styles.projectImagesGrid}>
           {projectImages.map((image) => (
             <article key={image.id} className={styles.projectImageCard}>
@@ -808,13 +1105,228 @@ export default function AdminPage() {
       </div>
       ) : null}
 
+      {activeSection === 'company' ? (
+        <div className={styles.companyCard}>
+          <div className={styles.companySettingsColumn}>
+            <div className={styles.companyGrid}>
+              <label className={styles.fieldGroup}>
+                <span className={styles.fieldLabel}>Nazwa firmy</span>
+                <input
+                  className={styles.inputInline}
+                  value={companySettings.companyName}
+                  onChange={(event) => setCompanySettings((prev) => ({ ...prev, companyName: event.target.value }))}
+                />
+              </label>
+              <label className={styles.fieldGroup}>
+                <span className={styles.fieldLabel}>Email powiadomien o zamowieniu</span>
+                <input
+                  className={styles.inputInline}
+                  type="email"
+                  value={companySettings.notificationEmail}
+                  onChange={(event) => setCompanySettings((prev) => ({ ...prev, notificationEmail: event.target.value }))}
+                />
+              </label>
+              <label className={styles.fieldGroup}>
+                <span className={styles.fieldLabel}>Publiczny email</span>
+                <input
+                  className={styles.inputInline}
+                  type="email"
+                  value={companySettings.publicEmail}
+                  onChange={(event) => setCompanySettings((prev) => ({ ...prev, publicEmail: event.target.value }))}
+                />
+              </label>
+              <label className={styles.fieldGroup}>
+                <span className={styles.fieldLabel}>Publiczny telefon</span>
+                <input
+                  className={styles.inputInline}
+                  value={companySettings.publicPhone}
+                  onChange={(event) => setCompanySettings((prev) => ({ ...prev, publicPhone: event.target.value }))}
+                />
+              </label>
+            </div>
+
+            <div className={styles.adminEmailCard}>
+              <div className={styles.adminEmailHeader}>
+                <div>
+                  <h2 className={styles.sectionTitle}>Dostep do panelu</h2>
+                  <p className={styles.sectionSubtitle}>
+                    Te adresy email beda mogly otrzymac kod logowania do panelu administratora.
+                  </p>
+                </div>
+                <button type="button" className={styles.buttonGhost} onClick={addCompanyAdminEmail}>
+                  Dodaj email
+                </button>
+              </div>
+
+              <div className={styles.adminEmailList}>
+                {companySettings.adminEmails.map((adminEmail, index) => (
+                  <div key={`${index}-${adminEmail}`} className={styles.adminEmailRow}>
+                    <input
+                      className={styles.inputInline}
+                      type="email"
+                      value={adminEmail}
+                      placeholder="admin@twojadomena.pl"
+                      onChange={(event) => updateCompanyAdminEmail(index, event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={`${styles.buttonDanger} ${styles.adminEmailRemoveButton}`}
+                      onClick={() => removeCompanyAdminEmail(index)}
+                      disabled={companySettings.adminEmails.length <= 1}
+                    >
+                      Usun
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <p className={styles.sectionSubtitle}>Przynajmniej jeden email musi zostac na liscie.</p>
+            </div>
+
+            {companySettingsLoading ? <p className={styles.subtitle}>Ladowanie ustawien firmy...</p> : null}
+            <div className={styles.companyFooterActions}>
+              <button className={styles.buttonPrimary} onClick={saveCompanySettings} disabled={companySettingsSaving}>
+                {companySettingsSaving ? 'Zapisywanie...' : 'Zapisz ustawienia firmy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {activeSection === 'orders' ? (
+      <>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Data</th>
-              <th>Status</th>
+              <th>
+                <div className={styles.headerTitleRow}>
+                  <span>Data</span>
+                  <div className={styles.headerIconGroup}>
+                    <button
+                      type="button"
+                      className={`${styles.headerIconButton} ${sortField === 'date' ? styles.headerIconButtonActive : ''}`}
+                      onClick={toggleDateSort}
+                      aria-label={
+                        sortField === 'date'
+                          ? sortDirection === 'desc'
+                            ? 'Sortowanie po dacie: najpierw nowe'
+                            : 'Sortowanie po dacie: najpierw stare'
+                          : 'Sortuj po dacie'
+                      }
+                      title={
+                        sortField === 'date'
+                          ? sortDirection === 'desc'
+                            ? 'Najpierw nowe'
+                            : 'Najpierw stare'
+                          : 'Sortuj po dacie'
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.headerIconSvg}>
+                        <path
+                          d="M7 6h10M7 12h7M7 18h4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d={sortField === 'date' && sortDirection === 'asc' ? 'M17 16l3-3 3 3' : 'M17 14l3 3 3-3'}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </th>
+              <th>
+                <div className={styles.headerTitleRow}>
+                  <span>Status</span>
+                  <div className={styles.headerIconGroup}>
+                    <button
+                      type="button"
+                      className={`${styles.headerIconButton} ${sortField === 'status' ? styles.headerIconButtonActive : ''}`}
+                      onClick={toggleStatusSort}
+                      aria-label={
+                        sortField === 'status'
+                          ? sortDirection === 'asc'
+                            ? 'Sortowanie po statusie: rosnaco'
+                            : 'Sortowanie po statusie: malejaco'
+                          : 'Sortuj po statusie'
+                      }
+                      title={
+                        sortField === 'status'
+                          ? sortDirection === 'asc'
+                            ? 'Rosnaco'
+                            : 'Malejaco'
+                          : 'Sortuj po statusie'
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.headerIconSvg}>
+                        <path
+                          d="M5 7h10M5 12h7M5 17h4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d={sortField === 'status' && sortDirection === 'desc' ? 'M16 8l3 3 3-3' : 'M16 11l3-3 3 3'}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      ref={statusFilterButtonRef}
+                      className={`${styles.headerIconButton} ${statusFilter !== 'all' ? styles.headerIconButtonActive : ''}`}
+                      onClick={() => setIsStatusFilterOpen((current) => !current)}
+                      aria-label={`Filtr statusu: ${getStatusFilterLabel()}`}
+                      title={`Filtr statusu: ${getStatusFilterLabel()}`}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.headerIconSvg}>
+                        <path
+                          d="M4 6h16l-6 7v4l-4 2v-6L4 6z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <DropdownMenu
+                    isOpen={isStatusFilterOpen}
+                    triggerRef={statusFilterButtonRef}
+                    onClose={() => setIsStatusFilterOpen(false)}
+                    dropdownType="orders-status-filter"
+                    renderInPortal
+                  >
+                    {statusFilterOptions.map((option) => (
+                      <li key={option} className={styles.statusMenuItem}>
+                        <div
+                          className={`${styles.statusMenuLink} ${statusFilter === option ? styles.statusMenuLinkActive : ''}`}
+                          onClick={() => {
+                            setStatusFilter(option);
+                            setIsStatusFilterOpen(false);
+                          }}
+                        >
+                          {option === 'all' ? 'Wszystkie statusy' : getStatusLabel(option)}
+                        </div>
+                      </li>
+                    ))}
+                  </DropdownMenu>
+                </div>
+              </th>
               <th>Klient</th>
               <th>Kontakt</th>
               <th>Szczegoly</th>
@@ -822,7 +1334,7 @@ export default function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {sortedOrders.map((order) => {
+            {paginatedOrders.map((order) => {
               const isEditing = editingId === order.id;
 
               return (
@@ -978,7 +1490,7 @@ export default function AdminPage() {
                 </tr>
               );
             })}
-            {!sortedOrders.length ? (
+            {!paginatedOrders.length ? (
               <tr>
                 <td colSpan={6}>
                   <div className={styles.emptyState}>Brak zamowien.</div>
@@ -988,7 +1500,77 @@ export default function AdminPage() {
           </tbody>
         </table>
       </div>
+      <div className={styles.paginationShell}>
+        <div className={styles.pageSizeControl}>
+          <button
+            type="button"
+            ref={pageSizeButtonRef}
+            className={styles.pageSizeDropdownTrigger}
+            onClick={() => setIsPageSizeOpen((current) => !current)}
+            aria-label={`Liczba zamowien na stronie: ${ordersPerPage}`}
+          >
+            <span>{ordersPerPage}</span>
+            <img src="/img/icons/downArrow.png" alt="" aria-hidden="true" className={styles.pageSizeArrow} />
+          </button>
+        </div>
+        <DropdownMenu
+          isOpen={isPageSizeOpen}
+          triggerRef={pageSizeButtonRef}
+          onClose={() => setIsPageSizeOpen(false)}
+          dropdownType="orders-page-size"
+          renderInPortal
+          portalPlacement="top"
+        >
+          {orderPageSizeOptions.map((size) => (
+            <li key={size} className={styles.statusMenuItem}>
+              <div
+                className={`${styles.statusMenuLink} ${ordersPerPage === size ? styles.statusMenuLinkActive : ''}`}
+                onClick={() => {
+                  setOrdersPerPage(size);
+                  setIsPageSizeOpen(false);
+                }}
+              >
+                {size} na stronie
+              </div>
+            </li>
+          ))}
+        </DropdownMenu>
+        {filteredAndSortedOrders.length > ordersPerPage ? (
+          <div className={styles.pagination}>
+            <button
+              type="button"
+              className={styles.buttonGhost}
+              onClick={() => setOrdersPage((current) => Math.max(1, current - 1))}
+              disabled={ordersPage === 1}
+            >
+              Wstecz
+            </button>
+            <div className={styles.paginationNumbers}>
+              {Array.from({ length: totalOrderPages }, (_, index) => index + 1).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={`${styles.paginationButton} ${ordersPage === page ? styles.paginationButtonActive : ''}`}
+                  onClick={() => setOrdersPage(page)}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={styles.buttonGhost}
+              onClick={() => setOrdersPage((current) => Math.min(totalOrderPages, current + 1))}
+              disabled={ordersPage === totalOrderPages}
+            >
+              Dalej
+            </button>
+          </div>
+        ) : null}
+      </div>
+      </>
       ) : null}
     </div>
   );
 }
+

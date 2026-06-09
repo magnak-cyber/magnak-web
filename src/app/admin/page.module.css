@@ -1,6 +1,8 @@
 .page {
   min-height: 100vh;
   padding: 32px 24px;
+  box-sizing: border-box;
+  overflow-x: hidden;
   color: #f7f7f7;
   background:
     radial-gradient(1200px 500px at 90% -20%, rgba(209, 172, 68, 0.16), transparent 60%),
@@ -27,34 +29,82 @@
   margin-bottom: 18px;
 }
 
-.headerActions {
+.floatingActions {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 30;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.floatingIconButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(16, 16, 16, 0.88);
+  color: #f0f0f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.floatingIconButton:hover {
+  background: rgba(28, 28, 28, 0.94);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.floatingIconSvg {
+  width: 18px;
+  height: 18px;
 }
 
 .sectionNav {
   display: flex;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(19, 19, 19, 0.88), rgba(12, 12, 12, 0.94));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(8px);
 }
 
 .sectionNavButton {
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e8e8e8;
-  font-size: 12px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #ececec;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sectionNavButton:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .sectionNavActive {
-  background: rgba(209, 172, 68, 0.16);
-  border-color: rgba(209, 172, 68, 0.35);
-  color: #f2d98f;
+  background: rgba(209, 172, 68, 0.18);
+  border-color: rgba(209, 172, 68, 0.38);
+  color: #f3dc98;
+  box-shadow: inset 0 0 0 1px rgba(209, 172, 68, 0.12);
 }
 
 .title {
@@ -100,6 +150,8 @@
 
 .loadingCard {
   width: min(460px, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
   margin: 12vh auto 0;
   padding: 34px 28px;
   border-radius: 22px;
@@ -193,7 +245,7 @@
   font-weight: 600;
   font-size: 12px;
   line-height: 1;
-  transition: transform 0.15s ease, opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .buttonPrimary {
@@ -218,7 +270,6 @@
 .buttonGhost:hover,
 .buttonDanger:hover {
   opacity: 0.95;
-  transform: translateY(-1px);
 }
 
 .buttonPrimary:hover {
@@ -279,6 +330,51 @@
   backdrop-filter: blur(6px);
 }
 
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerIconGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.headerIconButton {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d3d3d3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.headerIconButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.headerIconButtonActive {
+  border-color: rgba(222, 184, 71, 0.42);
+  background: rgba(222, 184, 71, 0.14);
+  color: #f0d98d;
+}
+
+.headerIconSvg {
+  width: 14px;
+  height: 14px;
+}
+
 .select,
 .inputInline,
 .textareaInline {
@@ -329,7 +425,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
   color: #f5f5f5;
-  padding: 0 10px;
+  padding: 0 14px 0 12px;
   font-size: 12px;
   cursor: pointer;
 }
@@ -337,6 +433,7 @@
 .statusArrow {
   width: 10px;
   height: 10px;
+  margin-left: auto;
   opacity: 0.85;
   filter: brightness(0) invert(1);
 }
@@ -358,6 +455,11 @@
 
 .statusMenuLink:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.statusMenuLinkActive {
+  background: rgba(222, 184, 71, 0.14);
+  color: #f0d98d;
 }
 
 .statusMenuItem:first-child .statusMenuLink {
@@ -434,6 +536,85 @@
   background: linear-gradient(180deg, rgba(17, 17, 17, 0.9), rgba(12, 12, 12, 0.95));
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
   padding: 14px;
+}
+
+.companyCard {
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0.9), rgba(12, 12, 12, 0.95));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  padding: 18px;
+  overflow: hidden;
+}
+
+.companySettingsColumn {
+  min-width: 0;
+}
+
+.companyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.adminEmailCard {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.adminEmailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.adminEmailList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adminEmailRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldLabel {
+  color: #d6d6d6;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.adminEmailRemoveButton {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 11px;
+  justify-self: end;
+  align-self: center;
+  width: auto;
+  min-width: 62px;
+}
+
+.companyFooterActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
 .galleryPanelHeader {
@@ -543,7 +724,6 @@
 }
 
 .iconButton:hover {
-  transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -558,9 +738,95 @@
   color: #a8a8a8;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.paginationShell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.pageSizeControl {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pageSizeDropdownTrigger {
+  min-width: 108px;
+  height: 38px;
+  padding: 0 16px 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.72);
+  color: #f2f2f2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  outline: none;
+  backdrop-filter: blur(14px) saturate(120%);
+}
+
+.pageSizeDropdownTrigger:hover {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.pageSizeDropdownTrigger:focus {
+  border-color: rgba(209, 172, 68, 0.9);
+  box-shadow: 0 0 0 3px rgba(209, 172, 68, 0.18);
+}
+
+.pageSizeArrow {
+  width: 10px;
+  height: 10px;
+  margin-left: auto;
+  opacity: 0.85;
+  filter: brightness(0) invert(1);
+}
+
+.paginationNumbers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.paginationButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f1f1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.paginationButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.paginationButtonActive {
+  background: rgba(209, 172, 68, 0.18);
+  border-color: rgba(209, 172, 68, 0.4);
+  color: #f3dc98;
+}
+
 @media (max-width: 900px) {
   .page {
-    padding: 16px 12px;
+    padding: 78px 12px 16px;
   }
 
   .header {
@@ -568,13 +834,14 @@
     align-items: flex-start;
   }
 
-  .headerActions {
-    width: 100%;
-    flex-wrap: wrap;
+  .floatingActions {
+    top: 14px;
+    right: 12px;
   }
 
-  .headerActions button {
-    flex: 1 1 120px;
+  .floatingIconButton {
+    width: 42px;
+    height: 42px;
   }
 
   .sectionNav {
@@ -582,7 +849,8 @@
   }
 
   .sectionNavButton {
-    flex: 1 1 160px;
+    flex: 1 1 100%;
+    width: 100%;
   }
 
   .authCard {
@@ -610,8 +878,43 @@
     flex-direction: column;
   }
 
+  .companyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminEmailHeader {
+    flex-direction: column;
+  }
+
+  .adminEmailRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .companyFooterActions {
+    justify-content: stretch;
+  }
+
+  .companyFooterActions button {
+    width: 100%;
+  }
+
   .projectImagesGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .pagination {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .paginationShell {
+    justify-content: stretch;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pageSizeControl {
+    justify-content: flex-end;
   }
 }
 

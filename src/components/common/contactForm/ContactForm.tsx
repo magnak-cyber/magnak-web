@@ -1,10 +1,10 @@
 'use client';
 
-import React, {useState, useRef, useEffect} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { DropdownMenu } from '@/components/ui/DropdownMenu/DropdownMenu';
 import { useTranslation } from '@/hooks/useTranslation';
 import styles from './ContactForm.module.css';
-import {DropdownMenu} from "@/components/ui/DropdownMenu/DropdownMenu";
-import { createPortal } from 'react-dom';
 
 export const LOCATIONS = [
   { value: 'gdansk', labelKey: 'contactForm.gdansk' },
@@ -16,201 +16,224 @@ export const LOCATIONS = [
   { value: 'other', labelKey: 'contactForm.other' },
 ];
 
-const PACKAGES = [
-  { value: 'basic', labelKey: 'contactForm.basic' },
-  { value: 'premium', label: 'Premium', labelKey: 'contactForm.premium' },
-  { value: 'luxury', labelKey: 'contactForm.luxury' },
-];
-
 const START_DATES = [
   { value: 'now', labelKey: 'contactForm.startDateNow' },
   { value: '1-2weeks', labelKey: 'contactForm.startDate1_2Weeks' },
   { value: '1month', labelKey: 'contactForm.startDate1Month' },
   { value: '2-3months', labelKey: 'contactForm.startDate2_3Months' },
 ];
+
 const CATEGORIES = [
-    { value: 'Kuchnie', labelKey: 'categories.kitchen' },
-    { value: 'Łazienki', labelKey: 'categories.bathroom' },
-    { value: 'Pokoje', labelKey: 'categories.rooms' },
-    { value: 'Wykończenia wnętrz', labelKey: 'categories.interiorFinishes' },
-    { value: 'Remonty', labelKey: 'categories.renovations' },
-    { value: 'Tarasy i balkony', labelKey: 'categories.terraces' },
-    { value: 'Ogrodzenia', labelKey: 'categories.fences' },
+  { value: 'Kuchnie', labelKey: 'categories.kitchen' },
+  { value: 'ЕЃazienki', labelKey: 'categories.bathroom' },
+  { value: 'Pokoje', labelKey: 'categories.rooms' },
+  { value: 'WykoЕ„czenia wnД™trz', labelKey: 'categories.interiorFinishes' },
+  { value: 'Remonty', labelKey: 'categories.renovations' },
+  { value: 'Tarasy i balkony', labelKey: 'categories.terraces' },
+  { value: 'Ogrodzenia', labelKey: 'categories.fences' },
 ];
 
+type ContactFormMode = 'modal' | 'page';
+
 interface ContactFormProps {
+  mode?: ContactFormMode;
   onClose: () => void;
 }
 
-export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
+const initialFormState = {
+  name: '',
+  phone: '',
+  email: '',
+  location: '',
+  packageType: '',
+  startDate: '',
+  additionalInfo: '',
+  attachedFile: null as File | null,
+};
+
+export const ContactForm: React.FC<ContactFormProps> = ({ mode = 'modal', onClose }) => {
   const { t } = useTranslation();
+  const isPage = mode === 'page';
   const [currentPhase, setCurrentPhase] = useState(1);
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    location: '',
-    packageType: '',
-    startDate: '',
-    additionalInfo: '',
-    attachedFile: null as File | null,
-  });
+  const [formData, setFormData] = useState(initialFormState);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
-  const locationButtonRef = useRef<HTMLButtonElement>(null);
-
-  const [isPackageTypeDropdownOpen, setIsPackageTypeDropdownOpen] = useState(false);
-  const packageTypeButtonRef = useRef<HTMLButtonElement>(null);
-
-  const [isStartDateDropdownOpen, setIsStartDateDropdownOpen] = useState(false);
-  const startDateButtonRef = useRef<HTMLButtonElement>(null);
-    const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
-    const [noticeVisible, setNoticeVisible] = useState(false);
-    const noticeTimerRef = useRef<number | null>(null);
-  // Новые состояния для чекбоксов
+  const [isClosing, setIsClosing] = useState(false);
   const [consentGDPR, setConsentGDPR] = useState(false);
   const [consentContact, setConsentContact] = useState(false);
-
-    const showNotice = (message: string, duration = 3500) => {
-        if (noticeTimerRef.current) {
-            window.clearTimeout(noticeTimerRef.current);
-            noticeTimerRef.current = null;
-        }
-        setBlockedNotice(message);
-        // slight delay to allow CSS animation
-        setTimeout(() => setNoticeVisible(true), 10);
-
-        noticeTimerRef.current = window.setTimeout(() => {
-            setNoticeVisible(false);
-            // remove text after animation completes
-            setTimeout(() => setBlockedNotice(null), 300);
-            noticeTimerRef.current = null;
-        }, duration);
-    };
-
-    useEffect(() => {
-        return () => {
-            if (noticeTimerRef.current) {
-                window.clearTimeout(noticeTimerRef.current);
-            }
-        };
-    }, []);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // Новые обработчики для чекбоксов
-  const handleConsentGDPRChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConsentGDPR(e.target.checked);
-  };
-
-  const handleConsentContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConsentContact(e.target.checked);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files ? e.target.files[0] : null;
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-          showNotice(t('contactForm.fileTooLarge'));
-        setFormData({ ...formData, attachedFile: null });
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        setFormData({ ...formData, attachedFile: file });
-      }
-    } else {
-      setFormData({ ...formData, attachedFile: null });
-    }
-  };
+  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
+  const [isPackageTypeDropdownOpen, setIsPackageTypeDropdownOpen] = useState(false);
+  const [isStartDateDropdownOpen, setIsStartDateDropdownOpen] = useState(false);
+  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
+  const [noticeVisible, setNoticeVisible] = useState(false);
+  const [noticeTone, setNoticeTone] = useState<'success' | 'error'>('error');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const locationButtonRef = useRef<HTMLButtonElement>(null);
+  const packageTypeButtonRef = useRef<HTMLButtonElement>(null);
+  const startDateButtonRef = useRef<HTMLButtonElement>(null);
+  const noticeTimerRef = useRef<number | null>(null);
 
   const closeAllDropdowns = () => {
     setIsLocationDropdownOpen(false);
     setIsPackageTypeDropdownOpen(false);
     setIsStartDateDropdownOpen(false);
   };
-  const toggleLocationDropdown = () => {
-    closeAllDropdowns();
-    setIsLocationDropdownOpen((prev) => !prev);
-  };
-  const togglePackageTypeDropdown = () => {
-    closeAllDropdowns();
-    setIsPackageTypeDropdownOpen((prev) => !prev);
-  };
-  const toggleStartDateDropdown = () => {
-    closeAllDropdowns();
-    setIsStartDateDropdownOpen((prev) => !prev);
-  };
-  const handleDropdownSelect = (name: string, value: string) => {
-    const syntheticEvent = {
-      target: {
-        name: name,
-        value: value,
-      },
-    } as React.ChangeEvent<HTMLSelectElement>;
-    handleChange(syntheticEvent);
-    closeAllDropdowns();
+
+  const showNotice = (message: string, duration = 3500, tone: 'success' | 'error' = 'error') => {
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = null;
+    }
+
+    setNoticeTone(tone);
+    setBlockedNotice(message);
+    window.setTimeout(() => setNoticeVisible(true), 10);
+
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNoticeVisible(false);
+      window.setTimeout(() => setBlockedNotice(null), 300);
+      noticeTimerRef.current = null;
+    }, duration);
   };
 
   useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const locationDropdown = document.querySelector('[data-dropdown-type="location"]');
+      const packageDropdown = document.querySelector('[data-dropdown-type="packageType"]');
+      const startDateDropdown = document.querySelector('[data-dropdown-type="startDate"]');
+
       if (
+        isLocationDropdownOpen &&
         locationButtonRef.current &&
-        !locationButtonRef.current.contains(event.target as Node) &&
-        !document.querySelector(`[data-dropdown-type="location"]`)?.contains(event.target as Node)
+        !locationButtonRef.current.contains(target) &&
+        (!locationDropdown || !locationDropdown.contains(target))
       ) {
         setIsLocationDropdownOpen(false);
       }
+
       if (
+        isPackageTypeDropdownOpen &&
         packageTypeButtonRef.current &&
-        !packageTypeButtonRef.current.contains(event.target as Node) &&
-        !document.querySelector(`[data-dropdown-type="packageType"]`)?.contains(event.target as Node)
+        !packageTypeButtonRef.current.contains(target) &&
+        (!packageDropdown || !packageDropdown.contains(target))
       ) {
         setIsPackageTypeDropdownOpen(false);
       }
+
       if (
+        isStartDateDropdownOpen &&
         startDateButtonRef.current &&
-        !startDateButtonRef.current.contains(event.target as Node) &&
-        !document.querySelector(`[data-dropdown-type="startDate"]`)?.contains(event.target as Node)
+        !startDateButtonRef.current.contains(target) &&
+        (!startDateDropdown || !startDateDropdown.contains(target))
       ) {
         setIsStartDateDropdownOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isLocationDropdownOpen, isPackageTypeDropdownOpen, isStartDateDropdownOpen]);
 
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [event.target.name]: event.target.value,
+    }));
+    setFieldErrors((prev) => ({
+      ...prev,
+      [event.target.name]: false,
+    }));
+  };
+
+  const handleDropdownSelect = (name: 'location' | 'packageType' | 'startDate', value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    closeAllDropdowns();
+  };
+
+  const validatePhaseOne = () => {
+    const nextErrors = {
+      name: !formData.name.trim(),
+      phone: !formData.phone.trim(),
+      email: !formData.email.trim(),
+    };
+
+    if (nextErrors.name || nextErrors.phone || nextErrors.email) {
+      setFieldErrors((prev) => ({ ...prev, ...nextErrors }));
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setFieldErrors((prev) => ({ ...prev, email: true }));
+      return false;
+    }
+
+    return true;
+  };
+
+  const navigateToPhase = (targetPhase: number) => {
+    if (targetPhase > 1 && !validatePhaseOne()) {
+      return;
+    }
+
+    setCurrentPhase(targetPhase);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setFormData((prev) => ({ ...prev, attachedFile: null }));
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showNotice(t('contactForm.fileTooLarge'));
+      setFormData((prev) => ({ ...prev, attachedFile: null }));
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, attachedFile: file }));
+  };
 
   const handleNext = () => {
-    if (currentPhase === 1) {
-      if (!formData.name || !formData.email || !formData.phone) {
-          showNotice(t('contactForm.fillAllFieldsPhase1'));
-        return;
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-          showNotice(t('contactForm.invalidEmail'));
-        return;
-      }
+    if (currentPhase === 1 && !validatePhaseOne()) {
+      return;
     }
-    setCurrentPhase((prev) => prev + 1);
+
+    setCurrentPhase((prev) => Math.min(3, prev + 1));
   };
 
   const handleBack = () => {
-    setCurrentPhase((prev) => prev - 1);
+    setCurrentPhase((prev) => Math.max(1, prev - 1));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     if (!consentGDPR || !consentContact) {
-        showNotice(t('contactForm.consentRequired'));
+      setFieldErrors((prev) => ({
+        ...prev,
+        consentGDPR: !consentGDPR,
+        consentContact: !consentContact,
+      }));
       return;
     }
 
@@ -224,13 +247,12 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
     payload.append('packageType', formData.packageType);
     payload.append('startDate', formData.startDate);
     payload.append('additionalInfo', formData.additionalInfo);
-    if (formData.attachedFile) {
-      payload.append('attachedFile', formData.attachedFile);
-    }
-    // Добавляем состояние чекбоксов в payload
     payload.append('consentGDPR', String(consentGDPR));
     payload.append('consentContact', String(consentContact));
 
+    if (formData.attachedFile) {
+      payload.append('attachedFile', formData.attachedFile);
+    }
 
     try {
       const response = await fetch('/api/contact', {
@@ -238,76 +260,86 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
         body: payload,
       });
 
-      if (response.ok) {
-        setStatus('success');
-        setFormData({
-          name: '',
-          phone: '',
-          email: '',
-          location: '',
-          packageType: '',
-          startDate: '',
-          additionalInfo: '',
-          attachedFile: null,
-        });
-        setConsentGDPR(false);
-        setConsentContact(false);
-
-        setCurrentPhase(1);
-          showNotice(t('contactForm.submitSuccess'));
-        setTimeout(onClose, 1000);
-      } else {
+      if (!response.ok) {
         setStatus('error');
-        console.error('Form submission failed:', await response.json());
-          showNotice(t('contactForm.submitError'));
+        showNotice(t('contactForm.submitError'));
+        return;
       }
+
+      setStatus('success');
+      setFormData(initialFormState);
+      setConsentGDPR(false);
+      setConsentContact(false);
+      setCurrentPhase(1);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      showNotice(t('contactForm.submitSuccess'), 2500, 'success');
+      window.setTimeout(() => setIsClosing(true), 2550);
+      window.setTimeout(() => onClose(), 2900);
     } catch (error) {
       setStatus('error');
       console.error('Error submitting form:', error);
-        showNotice(t('contactForm.submitError'));
+      showNotice(t('contactForm.submitError'), 3500, 'error');
     }
   };
 
   const getLocationLabel = () => {
-    const selectedOption = LOCATIONS.find(opt => opt.value === formData.location);
+    const selectedOption = LOCATIONS.find((option) => option.value === formData.location);
     return selectedOption ? t(selectedOption.labelKey) : t('contactForm.selectLocation');
   };
 
   const getPackageTypeLabel = () => {
-    const selectedOption = CATEGORIES.find(opt => opt.value === formData.packageType);
+    const selectedOption = CATEGORIES.find((option) => option.value === formData.packageType);
     return selectedOption ? t(selectedOption.labelKey) : t('common.repairTypes');
   };
 
   const getStartDateLabel = () => {
-    const selectedOption = START_DATES.find(opt => opt.value === formData.startDate);
+    const selectedOption = START_DATES.find((option) => option.value === formData.startDate);
     return selectedOption ? t(selectedOption.labelKey) : t('contactForm.selectStartDate');
   };
 
+  const stepClassName = (step: number) =>
+    `${styles.progressStep} ${currentPhase >= step ? styles.progressStepActive : ''}`;
+
   return (
-    <div className={styles.contactFormContainer}>
-      <button onClick={onClose} className={styles.closeButton}>
-        <img src="/img/icons/cross.png" alt={t('common.close')} />
+    <div
+      className={`${styles.contactFormContainer} ${isPage ? styles.contactFormPage : styles.contactFormModal} ${
+        isClosing ? styles.formClosing : ''
+      }`}
+    >
+      <button onClick={onClose} className={styles.closeButton} type="button" aria-label={t('common.close')}>
+        <img src="/img/icons/cross.png" alt="" aria-hidden="true" />
       </button>
-      <h2 className={styles.contactUsTitle}>{t('common.contactUs')}</h2>
+
+      <div className={styles.formHeader}>
+        <span className={styles.eyebrow}>{`0${currentPhase} / 03`}</span>
+        <h2 className={styles.contactUsTitle}>{t('common.contactUs')}</h2>
+      </div>
+
       <div className={styles.progressNav}>
-        <div onClick={() => setCurrentPhase(1)} className={`${styles.progressStep} ${currentPhase >= 1 ? styles.activeStep : ''}`}>
-          <img src="/img/icons/user.png" alt="Step 1" className={styles.stepIcon} />
-        </div>
-        <div className={styles.progressLine}></div>
-        <div onClick={() => setCurrentPhase(2)} className={`${styles.progressStep} ${currentPhase >= 2 ? styles.activeStep : ''}`}>
-          <img src="/img/icons/truck.png" alt="Step 2" className={styles.stepIcon} />
-        </div>
-        <div className={styles.progressLine}></div>
-        <div onClick={() => setCurrentPhase(3)} className={`${styles.progressStep} ${currentPhase >= 3 ? styles.activeStep : ''}`}>
-          <img src="/img/icons/picture.png" alt="Step 3" className={styles.stepIcon} />
-        </div>
+        <button type="button" className={stepClassName(1)} onClick={() => navigateToPhase(1)}>
+          <img src="/img/icons/user.png" alt="" aria-hidden="true" className={styles.stepIcon} />
+        </button>
+        <div className={`${styles.progressLine} ${currentPhase >= 2 ? styles.progressLineActive : ''}`} />
+        <button type="button" className={stepClassName(2)} onClick={() => navigateToPhase(2)}>
+          <img src="/img/icons/truck.png" alt="" aria-hidden="true" className={styles.stepIcon} />
+        </button>
+        <div className={`${styles.progressLine} ${currentPhase >= 3 ? styles.progressLineActive : ''}`} />
+        <button type="button" className={stepClassName(3)} onClick={() => navigateToPhase(3)}>
+          <img src="/img/icons/picture.png" alt="" aria-hidden="true" className={styles.stepIcon} />
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        {currentPhase === 1 && (
-          <>
-            <div className={styles.formGroup}>
-              <label htmlFor="name" className={styles.label}>{t('contactForm.name')}:</label>
+        {currentPhase === 1 ? (
+          <div className={styles.formGrid}>
+            <div className={`${styles.formGroup} ${styles.formGroupWide}`}>
+              <label htmlFor="name" className={styles.label}>
+                {t('contactForm.name')}
+              </label>
               <input
                 type="text"
                 id="name"
@@ -315,12 +347,15 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className={styles.input}
+                className={`${styles.input} ${fieldErrors.name ? styles.inputError : ''}`}
+                aria-invalid={fieldErrors.name ? 'true' : 'false'}
                 placeholder="Jan Kowalski"
               />
             </div>
             <div className={styles.formGroup}>
-              <label htmlFor="phone" className={styles.label}>{t('contactForm.phone')}:</label>
+              <label htmlFor="phone" className={styles.label}>
+                {t('contactForm.phone')}
+              </label>
               <input
                 type="tel"
                 id="phone"
@@ -328,12 +363,15 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                 value={formData.phone}
                 onChange={handleChange}
                 required
-                className={styles.input}
+                className={`${styles.input} ${fieldErrors.phone ? styles.inputError : ''}`}
+                aria-invalid={fieldErrors.phone ? 'true' : 'false'}
                 placeholder="+48 234 56 7890"
               />
             </div>
             <div className={styles.formGroup}>
-              <label htmlFor="email" className={styles.label}>{t('contactForm.email')}:</label>
+              <label htmlFor="email" className={styles.label}>
+                {t('contactForm.email')}
+              </label>
               <input
                 type="email"
                 id="email"
@@ -341,33 +379,35 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className={styles.input}
+                className={`${styles.input} ${fieldErrors.email ? styles.inputError : ''}`}
+                aria-invalid={fieldErrors.email ? 'true' : 'false'}
                 placeholder="example@email.com"
               />
             </div>
-            <div className={styles.formNavigation}>
-              <button type="button" onClick={handleNext} className={styles.navButton}>
-                {t('contactForm.next')}
-              </button>
-            </div>
-          </>
-        )}
+          </div>
+        ) : null}
 
-        {currentPhase === 2 && (
-          <>
+        {currentPhase === 2 ? (
+          <div className={styles.formGrid}>
             <div className={styles.formGroup}>
-              <label htmlFor="location" className={styles.label}>{t('contactForm.location')}:</label>
+              <label htmlFor="location" className={styles.label}>
+                {t('contactForm.location')}
+              </label>
               <div className={styles.dropdownContainer}>
                 <button
                   type="button"
-                  onClick={toggleLocationDropdown}
+                  onClick={() => {
+                    closeAllDropdowns();
+                    setIsLocationDropdownOpen((prev) => !prev);
+                  }}
                   className={styles.dropdownButton}
                   ref={locationButtonRef}
                 >
-                  {getLocationLabel()}
+                  <span>{getLocationLabel()}</span>
                   <img
                     src="/img/icons/downArrow.png"
-                    alt="arrow"
+                    alt=""
+                    aria-hidden="true"
                     className={`${styles.dropdownArrow} ${isLocationDropdownOpen ? styles.arrowOpen : ''}`}
                   />
                 </button>
@@ -376,14 +416,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                   triggerRef={locationButtonRef}
                   onClose={closeAllDropdowns}
                   dropdownType="location"
-                  dropdownStyle="form"
+                  renderInPortal
                 >
                   {LOCATIONS.map((option) => (
                     <li key={option.value} className={styles.dropdownMenuItem}>
-                      <div
-                        className={styles.dropdownLink}
-                        onClick={() => handleDropdownSelect('location', option.value)}
-                      >
+                      <div className={styles.dropdownLink} onClick={() => handleDropdownSelect('location', option.value)}>
                         {t(option.labelKey)}
                       </div>
                     </li>
@@ -393,18 +430,24 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="packageType" className={styles.label}>{t('common.repairTypes')}:</label>
+              <label htmlFor="packageType" className={styles.label}>
+                {t('common.repairTypes')}
+              </label>
               <div className={styles.dropdownContainer}>
                 <button
                   type="button"
-                  onClick={togglePackageTypeDropdown}
+                  onClick={() => {
+                    closeAllDropdowns();
+                    setIsPackageTypeDropdownOpen((prev) => !prev);
+                  }}
                   className={styles.dropdownButton}
                   ref={packageTypeButtonRef}
                 >
-                  {getPackageTypeLabel()}
+                  <span>{getPackageTypeLabel()}</span>
                   <img
                     src="/img/icons/downArrow.png"
-                    alt="arrow"
+                    alt=""
+                    aria-hidden="true"
                     className={`${styles.dropdownArrow} ${isPackageTypeDropdownOpen ? styles.arrowOpen : ''}`}
                   />
                 </button>
@@ -413,14 +456,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                   triggerRef={packageTypeButtonRef}
                   onClose={closeAllDropdowns}
                   dropdownType="packageType"
-                  dropdownStyle="form"
+                  renderInPortal
                 >
                   {CATEGORIES.map((option) => (
                     <li key={option.value} className={styles.dropdownMenuItem}>
-                      <div
-                        className={styles.dropdownLink}
-                        onClick={() => handleDropdownSelect('packageType', option.value)}
-                      >
+                      <div className={styles.dropdownLink} onClick={() => handleDropdownSelect('packageType', option.value)}>
                         {t(option.labelKey)}
                       </div>
                     </li>
@@ -429,19 +469,25 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
               </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label htmlFor="startDate" className={styles.label}>{t('contactForm.startDate')}:</label>
+            <div className={`${styles.formGroup} ${styles.formGroupWide}`}>
+              <label htmlFor="startDate" className={styles.label}>
+                {t('contactForm.startDate')}
+              </label>
               <div className={styles.dropdownContainer}>
                 <button
                   type="button"
-                  onClick={toggleStartDateDropdown}
+                  onClick={() => {
+                    closeAllDropdowns();
+                    setIsStartDateDropdownOpen((prev) => !prev);
+                  }}
                   className={styles.dropdownButton}
                   ref={startDateButtonRef}
                 >
-                  {getStartDateLabel()}
+                  <span>{getStartDateLabel()}</span>
                   <img
                     src="/img/icons/downArrow.png"
-                    alt="arrow"
+                    alt=""
+                    aria-hidden="true"
                     className={`${styles.dropdownArrow} ${isStartDateDropdownOpen ? styles.arrowOpen : ''}`}
                   />
                 </button>
@@ -450,14 +496,11 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                   triggerRef={startDateButtonRef}
                   onClose={closeAllDropdowns}
                   dropdownType="startDate"
-                  dropdownStyle="form"
+                  renderInPortal
                 >
                   {START_DATES.map((option) => (
                     <li key={option.value} className={styles.dropdownMenuItem}>
-                      <div
-                        className={styles.dropdownLink}
-                        onClick={() => handleDropdownSelect('startDate', option.value)}
-                      >
+                      <div className={styles.dropdownLink} onClick={() => handleDropdownSelect('startDate', option.value)}>
                         {t(option.labelKey)}
                       </div>
                     </li>
@@ -465,111 +508,129 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onClose }) => {
                 </DropdownMenu>
               </div>
             </div>
+          </div>
+        ) : null}
 
-            <div className={styles.formNavigation}>
-              <button type="button" onClick={handleBack} className={styles.navBackButton}>
-                {t('contactForm.back')}
-              </button>
-              <button type="button" onClick={handleNext} className={styles.navButton}>
-                {t('contactForm.next')}
-              </button>
-            </div>
-          </>
-        )}
-
-        {currentPhase === 3 && (
-          <>
+        {currentPhase === 3 ? (
+          <div className={styles.phaseThreeStack}>
             <div className={styles.formGroup}>
-              <label htmlFor="additionalInfo" className={styles.label}>{t('contactForm.additionalInfo')}:</label>
+              <label htmlFor="additionalInfo" className={styles.label}>
+                {t('contactForm.additionalInfo')}
+              </label>
               <textarea
                 id="additionalInfo"
                 name="additionalInfo"
                 value={formData.additionalInfo}
                 onChange={handleChange}
-                rows={5}
+                rows={6}
                 className={styles.textarea}
-              ></textarea>
+              />
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>{t('contactForm.attachFile')}:</label>
-              <div className={styles.fileInputContainer}>
-                <label htmlFor="attachedFile" className={styles.fileInputLabel}>
-                  {formData.attachedFile ? 'Edit File' : t('contactForm.chooseFile')}
-                </label>
-                <input
-                  type="file"
-                  id="attachedFile"
-                  name="attachedFile"
-                  onChange={handleFileChange}
-                  className={styles.fileInput}
-                  ref={fileInputRef}
-                  accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                />
-                {formData.attachedFile && (
-                  <span className={styles.fileName}>
-                    {`${t('contactForm.fileSelectedPrefix')}: ${formData.attachedFile.name} (${(formData.attachedFile.size / 1024 / 1024).toFixed(2)} MB)`}
-                  </span>
-                )}
-                <small>{t('contactForm.maxFileSize')}</small>
+
+            <div className={styles.uploadCard}>
+              <div className={styles.uploadHeader}>
+                <span className={styles.label}>{t('contactForm.attachFile')}</span>
+                <small className={styles.uploadHint}>{t('contactForm.maxFileSize')}</small>
               </div>
+              <label htmlFor="attachedFile" className={styles.fileInputLabel}>
+                {t('contactForm.chooseFile')}
+              </label>
+              <input
+                type="file"
+                id="attachedFile"
+                name="attachedFile"
+                onChange={handleFileChange}
+                className={styles.fileInput}
+                ref={fileInputRef}
+                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+              />
+              {formData.attachedFile ? (
+                <div className={styles.fileMeta}>
+                  {`${t('contactForm.fileSelectedPrefix')}: ${formData.attachedFile.name} (${(
+                    formData.attachedFile.size /
+                    1024 /
+                    1024
+                  ).toFixed(2)} MB)`}
+                </div>
+              ) : null}
             </div>
 
-            <div className={styles.formGroup}>
-              <input
-                type="checkbox"
-                id="consentGDPR"
-                name="consentGDPR"
-                checked={consentGDPR}
-                onChange={handleConsentGDPRChange}
-                className={styles.checkbox}
-              />
-              <label htmlFor="consentGDPR" className={styles.checkboxLabel}>
-                {t('contactForm.consentGDPR')}
+            <div className={styles.consentStack}>
+              <label className={`${styles.checkboxRow} ${fieldErrors.consentGDPR ? styles.checkboxRowError : ''}`}>
+                <input
+                  type="checkbox"
+                  id="consentGDPR"
+                  name="consentGDPR"
+                  checked={consentGDPR}
+                  onChange={(event) => {
+                    setConsentGDPR(event.target.checked);
+                    setFieldErrors((prev) => ({ ...prev, consentGDPR: false }));
+                  }}
+                  className={styles.checkbox}
+                />
+                <span className={styles.checkboxLabel}>{t('contactForm.consentGDPR')}</span>
+              </label>
+
+              <label className={`${styles.checkboxRow} ${fieldErrors.consentContact ? styles.checkboxRowError : ''}`}>
+                <input
+                  type="checkbox"
+                  id="consentContact"
+                  name="consentContact"
+                  checked={consentContact}
+                  onChange={(event) => {
+                    setConsentContact(event.target.checked);
+                    setFieldErrors((prev) => ({ ...prev, consentContact: false }));
+                  }}
+                  className={styles.checkbox}
+                />
+                <span className={styles.checkboxLabel}>{t('contactForm.consentContact')}</span>
               </label>
             </div>
+          </div>
+        ) : null}
 
-            <div className={styles.formGroup}>
-              <input
-                type="checkbox"
-                id="consentContact"
-                name="consentContact"
-                checked={consentContact}
-                onChange={handleConsentContactChange}
-                className={styles.checkbox}
-              />
-              <label htmlFor="consentContact" className={styles.checkboxLabel}>
-                {t('contactForm.consentContact')}
-              </label>
-            </div>
-
-            <div className={styles.formNavigation}>
-              <button type="button" onClick={handleBack} className={styles.navBackButton}>
-                {t('contactForm.back')}
-              </button>
-              <button
-                type="submit"
-                disabled={status === 'loading' || !consentGDPR || !consentContact} // Отключаем кнопку, если чекбоксы не отмечены
-                className={styles.submitButton}
-              >
-                {status === 'loading' ? t('common.sending') : t('common.submit')}
-              </button>
-            </div>
-          </>
-        )}
+        <div className={styles.formNavigation}>
+          <button type="button" onClick={handleBack} className={styles.navBackButton} disabled={currentPhase === 1}>
+            {t('contactForm.back')}
+          </button>
+          {currentPhase < 3 ? (
+            <button type="button" onClick={handleNext} className={styles.navButton}>
+              {t('contactForm.next')}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={status === 'loading'}
+              className={styles.submitButton}
+            >
+              {status === 'loading' ? t('common.sending') : t('common.submit')}
+            </button>
+          )}
+        </div>
       </form>
 
-        {blockedNotice && typeof document !== 'undefined' && createPortal(
+      {blockedNotice && typeof document !== 'undefined'
+        ? createPortal(
             <div
-                className={`${styles.blockedNotice} ${noticeVisible ? styles.show : styles.hide}`}
-                role="status"
-                aria-live="polite"
+              className={`${styles.blockedNotice} ${styles[`blockedNotice${noticeTone === 'success' ? 'Success' : 'Error'}`]} ${
+                noticeVisible ? styles.show : styles.hide
+              }`}
+              role="status"
+              aria-live="polite"
             >
-                {blockedNotice}
+              <span className={styles.noticeIconWrap}>
+                <img
+                  src={noticeTone === 'success' ? '/img/icons/checkMark.png' : '/img/icons/cross.png'}
+                  alt=""
+                  aria-hidden="true"
+                  className={styles.noticeIcon}
+                />
+              </span>
+              <span>{blockedNotice}</span>
             </div>,
             document.body
-        )}
-      {/*{status === 'success' && <p className={styles.successMessage}>{t('contactForm.submitSuccess')}</p>}*/}
-      {/*{status === 'error' && <p className={styles.errorMessage}>{t('contactForm.submitError')}</p>}*/}
+          )
+        : null}
     </div>
   );
 };

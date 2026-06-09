@@ -93,6 +93,6 @@ export const EXTENDED_CATEGORIES = [
     },
 ];
 
-export const SITE_NAME = 'N&B Interiors';
-export const CONTACT_EMAIL = 'wykonczenia.nbgroup@gmail.com';
-export const COMPANY_NAME = 'N&B Interiors';
+export const SITE_NAME = 'Magnak Wykończenia';
+export const CONTACT_EMAIL = 'magnakglazurnictwo@gmail.com';
+export const COMPANY_NAME = 'Magnak Wykończenia';

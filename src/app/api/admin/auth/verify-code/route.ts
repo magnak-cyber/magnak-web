@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const safeEmail = email?.trim().toLowerCase() || '';
     const safeCode = code?.trim() || '';
 
-    if (!validateAdminEmail(safeEmail)) {
+    if (!(await validateAdminEmail(safeEmail))) {
       return NextResponse.json({ message: 'Access denied for this email.' }, { status: 403 });
     }
 

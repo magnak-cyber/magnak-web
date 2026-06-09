@@ -3,6 +3,8 @@ import { verifySessionToken } from '@/lib/adminAuth';
 import { createOrder, readOrders } from '@/lib/ordersStore';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +16,10 @@ export async function GET(req: NextRequest) {
     }
 
     const orders = await readOrders();
-    return NextResponse.json({ orders });
+    return NextResponse.json(
+      { orders },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load orders.';
     return NextResponse.json({ message }, { status: 500 });

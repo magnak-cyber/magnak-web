@@ -3,6 +3,8 @@ import { verifySessionToken } from '@/lib/adminAuth';
 import { createProjectImage, listProjectImages } from '@/lib/projectImagesStore';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function unauthorized() {
   return NextResponse.json({ message: 'Unauthorized.' }, { status: 401 });
@@ -18,7 +20,10 @@ export async function GET(req: NextRequest) {
     }
 
     const images = await listProjectImages();
-    return NextResponse.json({ images });
+    return NextResponse.json(
+      { images },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load project images.';
     return NextResponse.json({ message }, { status: 500 });

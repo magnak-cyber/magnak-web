@@ -1,409 +1,509 @@
 .contactFormContainer {
-    position: fixed;
-    background: white;
-    padding: 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    width: 90%;
-    max-width: 500px;
-    display: flex;
-    flex-direction: column;
-    z-index: 9999;
+  position: relative;
+  width: min(100%, 760px);
+  max-width: 100%;
+  padding: 30px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.98), rgba(12, 12, 12, 0.98));
+  backdrop-filter: blur(18px) saturate(120%);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #f5f5f5;
+  overflow: hidden;
 }
 
-.contactUsTitle {
-    position: absolute;
-    top: 0;
-    left: 24px;
-    color: var(--color-text);
-}
-.blockedNotice {
-    position: fixed;
-    top: 16px;
-    left: 50%;
-    transform: translate(-50%, -120%);
-    background: rgba(39, 39, 39, 0.65);
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
-    backdrop-filter: blur(12px) saturate(120%);
-    background-clip: padding-box;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-    color: #fff;
-    padding: 10px 16px;
-    border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-    z-index: 12000;
-    max-width: calc(100% - 48px);
-    text-align: center;
-    opacity: 0;
-    transition: transform 320ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
+.contactFormModal {
+  max-height: min(90vh, 860px);
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
-/* visible state - slide down */
-.show {
-    transform: translate(-50%, 0%);
-    opacity: 1;
+.contactFormPage {
+  width: 100%;
+  max-width: 760px;
+  min-height: auto;
+  margin: 0 auto;
+  padding: 28px 22px;
 }
 
-/* hide state - slide up */
-.hide {
-    transform: translate(-50%, -120%);
-    opacity: 0;
+.contactFormModal::-webkit-scrollbar {
+  display: none;
 }
+
 .closeButton {
-    position: absolute;
-    top: 24px;
-    right: 24px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .closeButton img {
-    width: 16px;
-    height: 16px;
-    transition: transform 0.2s ease;
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+  opacity: 0.82;
 }
 
-.closeButton:hover img {
-    transform: rotate(90deg);
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
+.formHeader {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding-right: 56px;
+  z-index: 1;
+}
 
-.contactFormContainer h2 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    color: #333;
+.eyebrow {
+  color: rgba(222, 184, 71, 0.92);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.contactUsTitle {
+  margin: 0;
+  color: #fafafa;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.02;
+  font-weight: 600;
+}
+
+.progressNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.progressStep {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.progressStepActive {
+  border-color: rgba(222, 184, 71, 0.34);
+  background: rgba(222, 184, 71, 0.12);
+}
+
+.stepIcon {
+  width: 22px;
+  height: 22px;
+  filter: brightness(0) invert(1);
+  opacity: 0.48;
+}
+
+.progressStepActive .stepIcon {
+  opacity: 0.96;
+}
+
+.progressLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progressLineActive {
+  background: rgba(222, 184, 71, 0.32);
+}
+
+.form {
+  position: relative;
+  z-index: 1;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .formGroup {
-    width: 100%;
-    margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroupWide {
+  grid-column: 1 / -1;
 }
 
 .label {
-    display: block;
-    display: flex;
-    align-self: flex-start;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    color: var(--color-text);
+  color: #d9d9d9;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .input,
-.select {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid var(--color-secondary-border);
-    border-radius: 7px;
-    box-sizing: border-box;
-    font-size: 16px;
+.textarea,
+.dropdownButton {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4f4f4;
+  box-sizing: border-box;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.textarea {
-    min-height: 100px;
-    max-height: 200px;
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid var(--color-secondary-border);
-    border-radius: 7px;
-    box-sizing: border-box;
-    font-size: 16px;
+.input::placeholder,
+.textarea::placeholder {
+  color: #8e8e8e;
 }
 
 .input:focus,
-.select:focus,
-.textarea:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(189, 159, 74, 0.25);
+.textarea:focus,
+.dropdownButton:focus {
+  border-color: rgba(222, 184, 71, 0.72);
+  box-shadow: 0 0 0 4px rgba(222, 184, 71, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.inputError {
+  border-color: rgba(208, 84, 84, 0.62);
+  box-shadow: 0 0 0 4px rgba(208, 84, 84, 0.12);
+  background: rgba(74, 18, 18, 0.18);
 }
 
 .textarea {
-    resize: vertical;
+  min-height: 154px;
+  padding: 16px;
+  resize: vertical;
 }
 
-.fileInputContainer {
-    text-align: left;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-self: flex-start;
-    align-items: flex-start;
-    gap: 0.5rem;
-    color: var(--color-secondary-border);;
+.dropdownContainer {
+  position: relative;
+  width: 100%;
+}
+
+.dropdownButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdownArrow {
+  width: 11px;
+  height: 11px;
+  margin-left: 16px;
+  filter: brightness(0) invert(1);
+  opacity: 0.82;
+  transition: transform 0.24s ease;
+}
+
+.arrowOpen {
+  transform: rotate(180deg);
+}
+
+.dropdownMenuItem {
+  list-style: none;
+}
+
+.dropdownLink {
+  display: block;
+  padding: 11px 14px;
+  color: #f4f4f4;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdownLink:hover {
+  background: rgba(222, 184, 71, 0.14);
+  color: #f2df9b;
+}
+
+.uploadCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.uploadHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.uploadHint {
+  color: #8d8d8d;
+  font-size: 12px;
 }
 
 .fileInputLabel {
-    width: calc(100%);
-    display: block;
-    padding: 12px 0;
-    background-color: var(--color-primary);
-    color: var(--color-white);
-    border-radius: 7px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: center;
-    transition: background-color 0.2s ease;
-}
-
-.fileInputLabel:hover {
-    background-color: var(--color-primary);
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(222, 184, 71, 0.28);
+  background: rgba(222, 184, 71, 0.12);
+  color: #f3e1a0;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .fileInput {
-    width: 100%;
-    display: none;
+  display: none;
 }
 
-.fileName {
-    font-size: 0.9rem;
-    color: var(--color-secondary-text);
-    word-break: break-all;
+.fileMeta {
+  color: #a5a5a5;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.phaseThreeStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.consentStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.checkboxRowError {
+  border-color: rgba(208, 84, 84, 0.4);
+  background: rgba(74, 18, 18, 0.16);
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  color: #d8d8d8;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .formNavigation {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1.5rem;
-    gap: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.navButton,
+.navBackButton,
+.submitButton {
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-family: var(--font-body-family);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .navButton,
 .submitButton {
-    flex: 1;
-    padding: 0.8rem 1.2rem;
-    border: none;
-    font-family: var(--font-body-family);
-    border-radius: 7px;
-    font-size: 18px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+  border: 1px solid rgba(222, 184, 71, 0.42);
+  background: var(--color-primary-button);
+  color: #111111;
 }
 
-.navButton {
-    background-color: var(--color-primary);
-    color: white;
-}
-.navBackButton{
-    flex: 1;
-    padding: 0.8rem 1.2rem;
-    border: 2px solid var(--color-primary);
-    font-family: var(--font-body-family);
-    border-radius: 7px;
-    font-size: 18px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    background-color: #ffffff;
-    color: var(--color-primary);
-}
-.submitButton {
-    background-color: var(--color-primary);
-    color: white;
+.navBackButton {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ededed;
 }
 
-.submitButton:hover {
-    background-color: var(--color-primary);
+.navBackButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .submitButton:disabled {
-    background-color: rgba(189, 159, 74, 0.5);
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.successMessage {
-    color: #28a745;
-    text-align: center;
-    margin-top: 1rem;
+.blockedNotice {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translate(-50%, -120%);
+  background: rgba(28, 28, 28, 0.92);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  z-index: 12000;
+  max-width: calc(100% - 48px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transition: transform 320ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
 }
 
-.errorMessage {
-    color: #dc3545;
-    text-align: center;
-    margin-top: 1rem;
+.blockedNoticeSuccess {
+  border-color: rgba(61, 191, 113, 0.35);
+  background: rgba(17, 39, 26, 0.96);
 }
 
-.progressNav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 60px 0 25px;
-    padding: 0;
+.blockedNoticeError {
+  border-color: rgba(208, 84, 84, 0.35);
+  background: rgba(42, 18, 18, 0.96);
 }
 
-.progressStep {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #ccc;
-    transition: color 0.3s ease;
-    flex-shrink: 0;
-    pointer-events: none;
+.noticeIconWrap {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.progressStep.activeStep {
-    color: var(--color-primary);
-    pointer-events: auto;
+.noticeIcon {
+  width: 12px;
+  height: 12px;
+  filter: brightness(0) invert(1);
 }
 
-.stepIcon {
-    width: 34px;
-    height: 34px;
-    filter: grayscale(100%);
-    opacity: 0.3;
-
-    transition: filter 0.3s ease, opacity 0.3s ease;
+.formClosing {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
-.progressStep.activeStep .stepIcon {
-    filter: grayscale(0%);
-    opacity: 1;
-    cursor: pointer;
+.show {
+  transform: translate(-50%, 0%);
+  opacity: 1;
 }
 
-.progressLine {
-    flex-grow: 1;
-    height: 2px;
-    background-color: #eee;
-    margin: 0 10px;
-    transition: background-color 0.3s ease;
+.hide {
+  transform: translate(-50%, -120%);
+  opacity: 0;
 }
 
-.progressStep.activeStep + .progressLine {
-    background-color: var(--color-black);
+@media (max-width: 820px) {
+  .contactFormModal {
+    width: min(100%, 680px);
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formGroupWide {
+    grid-column: auto;
+  }
 }
-.dropdownContainer {
-    position: relative;
+
+@media (max-width: 640px) {
+  .contactFormContainer {
     width: 100%;
-}
-
-.dropdownButton {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid var(--color-secondary-border);
-    border-radius: 7px;
-    background-color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 400;
-    color: var(--color-text);
-    text-align: left;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dropdownButton:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(189, 159, 74, 0.25);
-}
-
-.dropdownArrow {
-    width: 12px;
-    height: 12px;
-    transition: transform 0.3s ease;
-    filter: none;
-    margin-left: 10px;
-}
-
-.arrowOpen {
-    transform: rotate(180deg);
-}
-
-.dropdownMenuContactForm {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: white;
-    list-style: none;
+    max-width: 100%;
     margin: 0;
-    padding: 0;
-    overflow: hidden;
-    min-width: 100%;
-    z-index: 10;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 22px 16px 18px;
+    border-radius: 22px;
     box-sizing: border-box;
-    border: 1px solid #ccc;
-}
+  }
 
-.dropdownMenuItem {
+  .contactFormPage {
     width: 100%;
-    display: flex;
-    align-self: flex-start;
-}
+    max-width: 100%;
+    margin: 0 auto;
+    min-height: 100vh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 22px 16px 18px;
+    box-sizing: border-box;
+  }
 
-.dropdownLink {
+  .progressStep {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+  }
+
+  .stepIcon {
+    width: 19px;
+    height: 19px;
+  }
+
+  .formNavigation {
+    flex-direction: column-reverse;
+  }
+
+  .navButton,
+  .navBackButton,
+  .submitButton {
     width: 100%;
-    display: flex;
-    align-self: flex-start;
-    padding: 8px 16px;
-    color: var(--color-text);
-    text-decoration: none;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    white-space: nowrap;
-    cursor: pointer;
-}
+  }
 
-.dropdownLink:hover {
-    background-color: var(--color-primary);
-    color: var(--color-white);
-}
-
-.checkbox {
-    margin-right: 10px;
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    min-height: 20px;
-    vertical-align: middle;
-    cursor: pointer;
-    accent-color: var(--color-primary);
-}
-
-.checkboxLabel {
-    font-size: 0.9em;
-    color: #555;
-    cursor: pointer;
-    text-align: left;
-    vertical-align: middle;
-}
-
-.submitButton:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-@media (max-width: 600px) {
-    .contactFormContainer {
-        width: 90%;
-        margin: 0 10px;
-        padding: 1.5rem;
-    }
-
-    .formNavigation {
-        flex-direction: column;
-    }
-
-    .navButton,
-    .submitButton {
-        width: 100%;
-    }
-
-    .progressNav {
-        padding: 0 0.5rem;
-    }
-
-    .stepIcon {
-        width: 30px;
-        height: 30px;
-    }
+  .uploadHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

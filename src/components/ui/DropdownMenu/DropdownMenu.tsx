@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './DropdownMenu.module.css';
 
@@ -16,6 +16,7 @@ interface DropdownMenuProps {
   dropdownType?: string;
   dropdownStyle?: string;
   renderInPortal?: boolean;
+  portalPlacement?: 'auto' | 'top' | 'bottom';
 }
 
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
@@ -26,25 +27,63 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   dropdownType,
   dropdownStyle,
   renderInPortal = false,
+  portalPlacement = 'auto',
 }) => {
   const [menuWidth, setMenuWidth] = useState<number | undefined>(undefined);
   const [fixedPosition, setFixedPosition] = useState<{ top: number; left: number }>({
     top: 0,
     left: 0,
   });
+  const menuRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
-    if (triggerRef.current) {
-      setMenuWidth(triggerRef.current.offsetWidth);
-      if (renderInPortal) {
-        const rect = triggerRef.current.getBoundingClientRect();
-        setFixedPosition({
-          top: rect.bottom + 8,
-          left: rect.left,
-        });
-      }
+    if (!isOpen || !triggerRef.current) {
+      return;
     }
-  }, [triggerRef, isOpen, renderInPortal]);
+
+    const updatePosition = () => {
+      if (!triggerRef.current) {
+        return;
+      }
+
+      const rect = triggerRef.current.getBoundingClientRect();
+      const nextMenuWidth = triggerRef.current.offsetWidth;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const menuHeight = menuRef.current?.offsetHeight ?? 0;
+      const preferredPlacement =
+        portalPlacement === 'auto'
+          ? rect.bottom + menuHeight + 12 > viewportHeight && rect.top - menuHeight - 8 > 12
+            ? 'top'
+            : 'bottom'
+          : portalPlacement;
+
+      const top =
+        preferredPlacement === 'top'
+          ? Math.max(12, rect.top - menuHeight - 8)
+          : Math.min(viewportHeight - menuHeight - 12, rect.bottom + 8);
+      const left = Math.min(Math.max(12, rect.left), Math.max(12, viewportWidth - nextMenuWidth - 12));
+
+      setMenuWidth(nextMenuWidth);
+      setFixedPosition({ top, left });
+    };
+
+    updatePosition();
+
+    if (!renderInPortal) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [triggerRef, isOpen, renderInPortal, portalPlacement]);
 
   if (!isOpen) {
     return null;
@@ -86,6 +125,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   if (renderInPortal && typeof document !== 'undefined') {
     return createPortal(
       <ul
+        ref={menuRef}
         className={
           dropdownStyle === 'form'
             ? styles.dropdownFormMenu
@@ -98,7 +138,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
           position: 'fixed',
           top: fixedPosition.top,
           left: fixedPosition.left,
-          zIndex: 1000,
+          zIndex: 12500,
         }}
         data-dropdown-type={dropdownType}
       >

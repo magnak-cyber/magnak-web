@@ -8,7 +8,12 @@ import styles from './ContactButton.module.css';
 import { createPortal } from 'react-dom';
 import { getConsent } from '@/lib/cookieConsent';
 
-export const ContactButton: React.FC = () => {
+interface ContactButtonProps {
+    className?: string;
+    onTrigger?: () => void;
+}
+
+export const ContactButton: React.FC<ContactButtonProps> = ({ className = '', onTrigger }) => {
     const { t } = useTranslation();
     const router = useRouter();
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -35,6 +40,7 @@ export const ContactButton: React.FC = () => {
     };
 
     const openForm = () => {
+        onTrigger?.();
         if (typeof window !== 'undefined' && window.innerWidth < 600) {
             router.push('/contactPage');
         } else {
@@ -109,7 +115,7 @@ export const ContactButton: React.FC = () => {
     <>
       <button
         onClick={handleOpenForm}
-        className={styles.contactButton}
+        className={`${styles.contactButton} ${className}`.trim()}
       >
         {t('common.contactUs')}
       </button>

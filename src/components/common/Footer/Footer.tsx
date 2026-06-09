@@ -1,20 +1,25 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import styles from './Footer.module.css';
-import {useTranslation} from "@/hooks/useTranslation";
-import {ContactButton} from "@/components/common/contactButton/ContactButton";
+import { useTranslation } from '@/hooks/useTranslation';
+import { ContactButton } from '@/components/common/contactButton/ContactButton';
+import { usePublicSiteSettings } from '@/hooks/usePublicSiteSettings';
 
 export const Footer: React.FC = () => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
+    const siteSettings = usePublicSiteSettings();
+    const phoneHref = `tel:${siteSettings.publicPhone.replace(/[^\d+]/g, '')}`;
 
     return (
         <footer className={styles.footer}>
             <div className={styles.logoSection}>
                 <Link href="/">
                     <img
-                        src="/img/logo/LogoStronaPrzezroczyste.png"
-                        alt="Footer Logo"
-                        className={`${styles.logoImg}`}
+                        src={siteSettings.logoUrl}
+                        alt={`${siteSettings.companyName} logo`}
+                        className={styles.logoImg}
                     />
                 </Link>
                 <div className={styles.subLinks}>
@@ -54,17 +59,14 @@ export const Footer: React.FC = () => {
             </nav>
 
             <div className={styles.contactSection}>
-                <a
-                    href="tel:+48691790400"
-                    className={styles.contactItem}
-                >
+                <a href={phoneHref} className={styles.contactItem}>
                     <img
                         src="/img/icons/phone.png"
                         alt="Phone Icon"
-                        style={{height: '20px', width: '20px'}}
+                        style={{ height: '20px', width: '20px' }}
                         className={styles.contactIcon}
                     />
-                    <span>Klaudiusz +48 691 790 400</span>
+                    <span>{siteSettings.publicPhone}</span>
                 </a>
                 <a
                     href="https://www.facebook.com/share/1GNkUqUmtW/?mibextid=wwXIfr"
@@ -75,26 +77,26 @@ export const Footer: React.FC = () => {
                     <img
                         src="/img/icons/facebook.png"
                         alt="Facebook Icon"
-                        style={{height: '20px', width: '20px'}}
+                        style={{ height: '20px', width: '20px' }}
                         className={styles.contactIcon}
                     />
-                    <span>Magnak Wykończenia</span>
+                    <span>{siteSettings.companyName}</span>
                 </a>
                 <a
-                    href="mailto:magnakglazurnictwo@gmail.com"
+                    href={`mailto:${siteSettings.publicEmail}`}
                     className={styles.contactItem}
-                    style={{marginBottom: '30px'}}
+                    style={{ marginBottom: '30px' }}
                 >
                     <img
                         src="/img/icons/gmail.png"
                         alt="Email Icon"
-                        style={{height: '20px', width: '20px'}}
+                        style={{ height: '20px', width: '20px' }}
                         className={styles.contactIcon}
                     />
-                    <span>magnakglazurnictwo@gmail.com</span>
+                    <span>{siteSettings.publicEmail}</span>
                 </a>
 
-                <ContactButton/>
+                <ContactButton />
             </div>
         </footer>
     );
