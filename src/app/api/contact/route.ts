@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { createOrder } from '@/lib/ordersStore';
 import { buildAdminOrderEmail, buildCustomerOrderEmail } from '@/lib/emailTemplates';
+import { createMailerTransport, formatMailerError, getMailerSetupError } from '@/lib/mailer';
 import { getAbsoluteStableLogoUrl, getAdminSiteSettings } from '@/lib/siteSettingsStore';
 
 export const runtime = 'nodejs';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || '465', 10),
-  secure: process.env.EMAIL_SECURE === 'true',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 function toBool(value: string | null) {
   return value === 'true';
@@ -26,6 +16,11 @@ function isValidEmail(email: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    const setupError = getMailerSetupError();
+    if (setupError) {
+      return NextResponse.json({ message: setupError }, { status: 500 });
+    }
+
     const formData = await req.formData();
 
     const name = (formData.get('name') as string | null)?.trim() || '';
@@ -85,6 +80,7 @@ export async function POST(req: NextRequest) {
     const settings = await getAdminSiteSettings();
     const origin = `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`;
     const logoUrl = getAbsoluteStableLogoUrl(origin);
+    const transporter = createMailerTransport();
     const attachmentLabel = attachedFile
       ? `${attachedFile.name} (${(attachedFile.size / 1024 / 1024).toFixed(2)} MB)`
       : null;
@@ -122,7 +118,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email sent successfully!' }, { status: 200 });
   } catch (error) {
     console.error('Error processing contact request:', error);
-    const message = error instanceof Error ? error.message : 'Failed to process request.';
+    const message = formatMailerError(error);
     return NextResponse.json(
       { message },
       { status: 500 }

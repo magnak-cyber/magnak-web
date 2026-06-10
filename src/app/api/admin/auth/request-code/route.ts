@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { createEmailOtp, validateAdminEmail } from '@/lib/adminAuth';
 import { buildAdminCodeEmail } from '@/lib/emailTemplates';
+import { createMailerTransport, formatMailerError, getMailerSetupError } from '@/lib/mailer';
 import { getAbsoluteStableLogoUrl, getPublicSiteSettings } from '@/lib/siteSettingsStore';
 
 export const runtime = 'nodejs';
@@ -10,18 +10,13 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || '465', 10),
-  secure: process.env.EMAIL_SECURE === 'true',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
 export async function POST(req: NextRequest) {
   try {
+    const setupError = getMailerSetupError();
+    if (setupError) {
+      return NextResponse.json({ message: setupError }, { status: 500 });
+    }
+
     const { email } = (await req.json()) as { email?: string };
     const safeEmail = email?.trim().toLowerCase() || '';
 
@@ -37,6 +32,7 @@ export async function POST(req: NextRequest) {
     const settings = await getPublicSiteSettings();
     const origin = `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`;
     const logoUrl = getAbsoluteStableLogoUrl(origin);
+    const transporter = createMailerTransport();
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -47,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: 'Code sent to admin email.' });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to send code.';
+    const message = formatMailerError(error);
     return NextResponse.json({ message }, { status: 500 });
   }
 }
