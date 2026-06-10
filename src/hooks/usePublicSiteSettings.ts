@@ -34,7 +34,6 @@ export function usePublicSiteSettings() {
           setSettings(data.settings);
         }
       } catch {
-        // Keep defaults on network failure.
       }
     };
 

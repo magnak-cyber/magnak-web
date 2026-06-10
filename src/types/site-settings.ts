@@ -6,7 +6,6 @@ export interface BrandingAssetDocument {
   dataBase64: string;
   updatedAt: string;
 }
-
 export interface SiteSettingsDocument {
   id: 'default';
   companyName: string;
