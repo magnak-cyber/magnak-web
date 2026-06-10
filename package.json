@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:set-customer-email": "node scripts/set-customer-email.mjs"
   },
   "dependencies": {
     "@types/react-image-gallery": "^1.2.4",

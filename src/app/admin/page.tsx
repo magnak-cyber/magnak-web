@@ -45,7 +45,7 @@ const emptyCompanyState: AdminSiteSettings = {
   notificationEmail: 'magnakglazurnictwo@gmail.com',
   publicEmail: 'magnakglazurnictwo@gmail.com',
   publicPhone: '+48 691 790 400',
-  adminEmails: ['magnakglazurnictwo@gmail.com'],
+  adminEmails: ['magnakglazurnictwo@gmail.com', 'infomagnak@gmail.com'],
   logoUrl: '/img/logo/LogoStronaPrzezroczyste.png',
   faviconUrl: '/img/logo/LogoFav.png',
   updatedAt: '',
