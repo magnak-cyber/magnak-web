@@ -26,12 +26,26 @@ function parseSecureFlag(value: string, port: number) {
   return value.toLowerCase() === 'true';
 }
 
+function normalizePassword(value: string | undefined, host: string) {
+  const normalized = normalizeEnvValue(value);
+
+  if (!normalized) {
+    return '';
+  }
+
+  if (host.includes('gmail')) {
+    return normalized.replace(/\s+/g, '');
+  }
+
+  return normalized;
+}
+
 export function getMailerConfig() {
   const host = normalizeEnvValue(process.env.EMAIL_HOST) || 'smtp.gmail.com';
   const port = Number.parseInt(normalizeEnvValue(process.env.EMAIL_PORT) || '465', 10);
   const secure = parseSecureFlag(normalizeEnvValue(process.env.EMAIL_SECURE), port);
   const user = normalizeEnvValue(process.env.EMAIL_USER);
-  const pass = normalizeEnvValue(process.env.EMAIL_PASS);
+  const pass = normalizePassword(process.env.EMAIL_PASS, host);
 
   return {
     host,
@@ -42,7 +56,7 @@ export function getMailerConfig() {
   };
 }
 
-export function createMailerTransport() {
+function createConfiguredTransport() {
   const config = getMailerConfig();
 
   return nodemailer.createTransport({
@@ -79,34 +93,58 @@ function createGmailStartTlsTransport() {
   });
 }
 
-function shouldRetryWithGmailStartTls(error: unknown) {
+function createGmailServiceTransport() {
+  const config = getMailerConfig();
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+}
+
+function shouldRetryWithGmailFallback(error: unknown) {
   const config = getMailerConfig();
   const message = error instanceof Error ? error.message : String(error);
   const lowerMessage = message.toLowerCase();
-  const isGmailHost = config.host.includes('gmail');
 
-  if (!isGmailHost) {
+  if (!config.host.includes('gmail')) {
     return false;
   }
 
   return (
     lowerMessage.includes('tlsv1 alert internal error') ||
     lowerMessage.includes('ssl3_read_bytes') ||
-    lowerMessage.includes('ssl alert number 80')
+    lowerMessage.includes('ssl alert number 80') ||
+    lowerMessage.includes('esocket')
   );
 }
 
 export async function sendMail(mailOptions: Mail.Options) {
   try {
-    const transporter = createMailerTransport();
-    return await transporter.sendMail(mailOptions);
-  } catch (error) {
-    if (!shouldRetryWithGmailStartTls(error)) {
-      throw error;
+    return await createConfiguredTransport().sendMail(mailOptions);
+  } catch (firstError) {
+    if (!shouldRetryWithGmailFallback(firstError)) {
+      throw firstError;
     }
 
-    const fallbackTransporter = createGmailStartTlsTransport();
-    return fallbackTransporter.sendMail(mailOptions);
+    try {
+      return await createGmailStartTlsTransport().sendMail(mailOptions);
+    } catch (secondError) {
+      try {
+        return await createGmailServiceTransport().sendMail(mailOptions);
+      } catch (thirdError) {
+        const firstMessage = firstError instanceof Error ? firstError.message : String(firstError);
+        const secondMessage = secondError instanceof Error ? secondError.message : String(secondError);
+        const thirdMessage = thirdError instanceof Error ? thirdError.message : String(thirdError);
+
+        throw new Error(
+          `SMTP fallback failed. primary=${firstMessage}; starttls=${secondMessage}; gmail_service=${thirdMessage}`
+        );
+      }
+    }
   }
 }
 
@@ -140,6 +178,10 @@ export function getMailerSetupError() {
 export function formatMailerError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes('smtp fallback failed')) {
+    return `Blad SMTP Gmail po wszystkich probach. Szczegoly: ${message}`;
+  }
 
   if (lowerMessage.includes('tlsv1 alert internal error') || lowerMessage.includes('ssl3_read_bytes')) {
     return 'Blad polaczenia SMTP z Gmail. Ustaw w Vercel EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=587, EMAIL_SECURE=false oraz poprawne haslo aplikacji Gmail.';
