@@ -79,6 +79,18 @@ function getFaviconUrl() {
   return DEFAULT_FAVICON_PATH;
 }
 
+function toDefaultSettings(updatedAt = new Date().toISOString()): SiteSettingsDocument {
+  return {
+    id: SETTINGS_ID,
+    companyName: DEFAULT_COMPANY_NAME,
+    notificationEmail: DEFAULT_NOTIFICATION_EMAIL,
+    publicEmail: DEFAULT_PUBLIC_EMAIL,
+    publicPhone: DEFAULT_PUBLIC_PHONE,
+    adminEmails: getDefaultAdminEmails(),
+    updatedAt,
+  };
+}
+
 async function normalizeImageBuffer(
   buffer: Buffer,
   options: {
@@ -161,15 +173,19 @@ async function ensureDefaultLogo() {
     return new Date().toISOString();
   }
 
-  const assets = await getBrandingAssetsCollection();
-  const currentLogo = await assets.findOne({ id: COMPANY_LOGO_ID });
+  try {
+    const assets = await getBrandingAssetsCollection();
+    const currentLogo = await assets.findOne({ id: COMPANY_LOGO_ID });
 
-  if (currentLogo) {
-    return currentLogo.updatedAt;
+    if (currentLogo) {
+      return currentLogo.updatedAt;
+    }
+
+    const fileBuffer = await fs.readFile(LOGO_PUBLIC_FILE);
+    return upsertLogoAsset(fileBuffer, path.basename(LOGO_PUBLIC_FILE), new Date().toISOString());
+  } catch {
+    return new Date().toISOString();
   }
-
-  const fileBuffer = await fs.readFile(LOGO_PUBLIC_FILE);
-  return upsertLogoAsset(fileBuffer, path.basename(LOGO_PUBLIC_FILE), new Date().toISOString());
 }
 
 async function ensureDefaultFavicon() {
@@ -177,58 +193,49 @@ async function ensureDefaultFavicon() {
     return new Date().toISOString();
   }
 
-  const assets = await getBrandingAssetsCollection();
-  const currentFavicon = await assets.findOne({ id: COMPANY_FAVICON_ID });
+  try {
+    const assets = await getBrandingAssetsCollection();
+    const currentFavicon = await assets.findOne({ id: COMPANY_FAVICON_ID });
 
-  if (currentFavicon) {
-    return currentFavicon.updatedAt;
+    if (currentFavicon) {
+      return currentFavicon.updatedAt;
+    }
+
+    const fileBuffer = await fs.readFile(FAVICON_PUBLIC_FILE);
+    return upsertFaviconAsset(fileBuffer, path.basename(FAVICON_PUBLIC_FILE), new Date().toISOString());
+  } catch {
+    return new Date().toISOString();
   }
-
-  const fileBuffer = await fs.readFile(FAVICON_PUBLIC_FILE);
-  return upsertFaviconAsset(fileBuffer, path.basename(FAVICON_PUBLIC_FILE), new Date().toISOString());
 }
 
 async function ensureDefaultSettings() {
   if (!canUseMongo()) {
-    return {
-      id: SETTINGS_ID,
-      companyName: DEFAULT_COMPANY_NAME,
-      notificationEmail: DEFAULT_NOTIFICATION_EMAIL,
-      publicEmail: DEFAULT_PUBLIC_EMAIL,
-      publicPhone: DEFAULT_PUBLIC_PHONE,
-      adminEmails: getDefaultAdminEmails(),
-      updatedAt: new Date().toISOString(),
-    } satisfies SiteSettingsDocument;
+    return toDefaultSettings();
   }
 
-  const settingsCollection = await getSiteSettingsCollection();
-  const existing = await settingsCollection.findOne({ id: SETTINGS_ID });
-  const logoUpdatedAt = await ensureDefaultLogo();
-  const faviconUpdatedAt = await ensureDefaultFavicon();
+  try {
+    const settingsCollection = await getSiteSettingsCollection();
+    const existing = await settingsCollection.findOne({ id: SETTINGS_ID });
+    const logoUpdatedAt = await ensureDefaultLogo();
+    const faviconUpdatedAt = await ensureDefaultFavicon();
 
-  if (existing) {
-    return {
-      ...existing,
-      adminEmails:
-        dedupeEmails(existing.adminEmails || []).length > 0
-          ? dedupeEmails(existing.adminEmails || [])
-          : getDefaultAdminEmails(),
-      updatedAt: existing.updatedAt || logoUpdatedAt || faviconUpdatedAt,
-    };
+    if (existing) {
+      return {
+        ...existing,
+        adminEmails:
+          dedupeEmails(existing.adminEmails || []).length > 0
+            ? dedupeEmails(existing.adminEmails || [])
+            : getDefaultAdminEmails(),
+        updatedAt: existing.updatedAt || logoUpdatedAt || faviconUpdatedAt,
+      };
+    }
+
+    const defaultSettings = toDefaultSettings();
+    await settingsCollection.insertOne(defaultSettings);
+    return defaultSettings;
+  } catch {
+    return toDefaultSettings();
   }
-
-  const defaultSettings: SiteSettingsDocument = {
-    id: SETTINGS_ID,
-    companyName: DEFAULT_COMPANY_NAME,
-    notificationEmail: DEFAULT_NOTIFICATION_EMAIL,
-    publicEmail: DEFAULT_PUBLIC_EMAIL,
-    publicPhone: DEFAULT_PUBLIC_PHONE,
-    adminEmails: getDefaultAdminEmails(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  await settingsCollection.insertOne(defaultSettings);
-  return defaultSettings;
 }
 
 function toPublicSettings(settings: SiteSettingsDocument): PublicSiteSettings {
@@ -258,9 +265,13 @@ export async function getBrandingLogoAsset() {
     return null;
   }
 
-  await ensureDefaultSettings();
-  const assets = await getBrandingAssetsCollection();
-  return assets.findOne({ id: COMPANY_LOGO_ID });
+  try {
+    await ensureDefaultSettings();
+    const assets = await getBrandingAssetsCollection();
+    return assets.findOne({ id: COMPANY_LOGO_ID });
+  } catch {
+    return null;
+  }
 }
 
 export async function getBrandingFaviconAsset() {
@@ -268,18 +279,22 @@ export async function getBrandingFaviconAsset() {
     return null;
   }
 
-  await ensureDefaultSettings();
-  const assets = await getBrandingAssetsCollection();
-  return assets.findOne({ id: COMPANY_FAVICON_ID });
+  try {
+    await ensureDefaultSettings();
+    const assets = await getBrandingAssetsCollection();
+    return assets.findOne({ id: COMPANY_FAVICON_ID });
+  } catch {
+    return null;
+  }
 }
 
 export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
-  const settings = await ensureDefaultSettings();
+  const settings = await ensureDefaultSettings().catch(() => toDefaultSettings());
   return toPublicSettings(settings);
 }
 
 export async function getAdminSiteSettings(): Promise<AdminSiteSettings> {
-  const settings = await ensureDefaultSettings();
+  const settings = await ensureDefaultSettings().catch(() => toDefaultSettings());
   return toAdminSettings(settings);
 }
 
@@ -349,7 +364,11 @@ export function getAbsoluteStableFaviconUrl(origin: string) {
 }
 
 export async function getAllowedAdminEmails() {
-  const settings = await ensureDefaultSettings();
-  const emails = dedupeEmails(settings.adminEmails || []);
-  return emails.length ? emails : getDefaultAdminEmails();
+  try {
+    const settings = await ensureDefaultSettings();
+    const emails = dedupeEmails(settings.adminEmails || []);
+    return emails.length ? emails : getDefaultAdminEmails();
+  } catch {
+    return getDefaultAdminEmails();
+  }
 }
