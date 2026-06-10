@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrder } from '@/lib/ordersStore';
 import { buildAdminOrderEmail, buildCustomerOrderEmail } from '@/lib/emailTemplates';
-import { createMailerTransport, formatMailerError, getMailerSetupError } from '@/lib/mailer';
+import { formatMailerError, getMailerSetupError, sendMail } from '@/lib/mailer';
 import { getAbsoluteStableLogoUrl, getAdminSiteSettings } from '@/lib/siteSettingsStore';
 
 export const runtime = 'nodejs';
@@ -80,12 +80,11 @@ export async function POST(req: NextRequest) {
     const settings = await getAdminSiteSettings();
     const origin = `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`;
     const logoUrl = getAbsoluteStableLogoUrl(origin);
-    const transporter = createMailerTransport();
     const attachmentLabel = attachedFile
       ? `${attachedFile.name} (${(attachedFile.size / 1024 / 1024).toFixed(2)} MB)`
       : null;
 
-    await transporter.sendMail({
+    await sendMail({
       from: process.env.EMAIL_USER,
       to: settings.notificationEmail,
       subject: `Nowe zamowienie | ${settings.companyName} | ${name}`,
@@ -104,7 +103,7 @@ export async function POST(req: NextRequest) {
       attachments,
     });
 
-    await transporter.sendMail({
+    await sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: `Potwierdzenie zamowienia | ${settings.companyName}`,

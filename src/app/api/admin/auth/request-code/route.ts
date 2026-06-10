@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEmailOtp, validateAdminEmail } from '@/lib/adminAuth';
 import { buildAdminCodeEmail } from '@/lib/emailTemplates';
-import { createMailerTransport, formatMailerError, getMailerSetupError } from '@/lib/mailer';
+import { formatMailerError, getMailerSetupError, sendMail } from '@/lib/mailer';
 import { getAbsoluteStableLogoUrl, getPublicSiteSettings } from '@/lib/siteSettingsStore';
 
 export const runtime = 'nodejs';
@@ -32,9 +32,8 @@ export async function POST(req: NextRequest) {
     const settings = await getPublicSiteSettings();
     const origin = `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`;
     const logoUrl = getAbsoluteStableLogoUrl(origin);
-    const transporter = createMailerTransport();
 
-    await transporter.sendMail({
+    await sendMail({
       from: process.env.EMAIL_USER,
       to: safeEmail,
       subject: `Kod logowania | ${settings.companyName}`,

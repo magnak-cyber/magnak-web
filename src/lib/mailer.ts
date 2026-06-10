@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import type Mail from 'nodemailer/lib/mailer';
 
 function normalizeEnvValue(value: string | undefined) {
   const trimmed = value?.trim() || '';
@@ -59,6 +60,56 @@ export function createMailerTransport() {
   });
 }
 
+function createGmailStartTlsTransport() {
+  const config = getMailerConfig();
+
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+    tls: {
+      minVersion: 'TLSv1.2',
+      servername: 'smtp.gmail.com',
+    },
+  });
+}
+
+function shouldRetryWithGmailStartTls(error: unknown) {
+  const config = getMailerConfig();
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+  const isGmailHost = config.host.includes('gmail');
+
+  if (!isGmailHost) {
+    return false;
+  }
+
+  return (
+    lowerMessage.includes('tlsv1 alert internal error') ||
+    lowerMessage.includes('ssl3_read_bytes') ||
+    lowerMessage.includes('ssl alert number 80')
+  );
+}
+
+export async function sendMail(mailOptions: Mail.Options) {
+  try {
+    const transporter = createMailerTransport();
+    return await transporter.sendMail(mailOptions);
+  } catch (error) {
+    if (!shouldRetryWithGmailStartTls(error)) {
+      throw error;
+    }
+
+    const fallbackTransporter = createGmailStartTlsTransport();
+    return fallbackTransporter.sendMail(mailOptions);
+  }
+}
+
 export function getMailerSetupError() {
   const config = getMailerConfig();
   const missing: string[] = [];
@@ -91,7 +142,7 @@ export function formatMailerError(error: unknown) {
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes('tlsv1 alert internal error') || lowerMessage.includes('ssl3_read_bytes')) {
-    return 'Blad polaczenia SMTP. Sprawdz EMAIL_HOST, EMAIL_PORT, EMAIL_SECURE oraz haslo aplikacji Gmail w Vercel.';
+    return 'Blad polaczenia SMTP z Gmail. Ustaw w Vercel EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=587, EMAIL_SECURE=false oraz poprawne haslo aplikacji Gmail.';
   }
 
   if (
