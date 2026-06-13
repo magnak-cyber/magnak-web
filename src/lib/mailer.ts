@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { normalizeEnvValue } from '@/lib/env';
 
 type MailAttachment = {
@@ -17,6 +18,14 @@ function parsePort(value: string) {
   return Number.isFinite(parsed) ? parsed : 465;
 }
 
+function isTruthy(value: string) {
+  return value === 'true' || value === '1' || value === 'yes';
+}
+
+function isGmailHost(host: string) {
+  return host.toLowerCase().includes('gmail');
+}
+
 export function getMailerConfig() {
   const port = parsePort(normalizeEnvValue(process.env.EMAIL_PORT) || '465');
   const secureEnv = normalizeEnvValue(process.env.EMAIL_SECURE).toLowerCase();
@@ -31,6 +40,47 @@ export function getMailerConfig() {
     from: normalizeEnvValue(process.env.EMAIL_FROM) || user,
     to: normalizeEnvValue(process.env.EMAIL_RECEIVER),
   };
+}
+
+function buildTransportConfig(config: ReturnType<typeof getMailerConfig>) {
+  return {
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    requireTLS: !config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+    tls: {
+      servername: config.host,
+      minVersion: 'TLSv1.2',
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+  } satisfies SMTPTransport.Options;
+}
+
+function shouldRetryWithGmailStartTls(
+  error: unknown,
+  config: ReturnType<typeof getMailerConfig>
+) {
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+
+  return (
+    isGmailHost(config.host) &&
+    config.secure &&
+    config.port === 465 &&
+    (
+      lowerMessage.includes('unexpected socket close') ||
+      lowerMessage.includes('ssl3_read_bytes') ||
+      lowerMessage.includes('tlsv1 alert') ||
+      lowerMessage.includes('esocket') ||
+      lowerMessage.includes('wrong version number')
+    )
+  );
 }
 
 function toMailAttachments(attachments: MailAttachment[] | undefined) {
@@ -57,16 +107,6 @@ export async function sendMail(mailOptions: {
   replyTo?: string | string[];
 }) {
   const config = getMailerConfig();
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-  });
-
   const payload = {
     from: normalizeEnvValue(mailOptions.from) || config.from,
     to: mailOptions.to,
@@ -79,7 +119,23 @@ export async function sendMail(mailOptions: {
       : {}),
   };
 
-  return transporter.sendMail(payload);
+  try {
+    const transporter = nodemailer.createTransport(buildTransportConfig(config));
+    return await transporter.sendMail(payload);
+  } catch (error) {
+    if (!shouldRetryWithGmailStartTls(error, config)) {
+      throw error;
+    }
+
+    const fallbackConfig = {
+      ...config,
+      port: 587,
+      secure: false,
+    };
+
+    const transporter = nodemailer.createTransport(buildTransportConfig(fallbackConfig));
+    return transporter.sendMail(payload);
+  }
 }
 
 export function getMailerSetupError() {
@@ -136,10 +192,12 @@ export function formatMailerError(error: unknown) {
   if (
     lowerMessage.includes('ssl3_read_bytes') ||
     lowerMessage.includes('tlsv1 alert') ||
+    lowerMessage.includes('unexpected socket close') ||
+    lowerMessage.includes('connection closed unexpectedly') ||
     lowerMessage.includes('esocket') ||
     lowerMessage.includes('wrong version number')
   ) {
-    return 'Blad polaczenia SMTP z Gmail. Ustaw EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=465, EMAIL_SECURE=true oraz poprawne haslo aplikacji Gmail.';
+    return 'Blad polaczenia SMTP z Gmail. Ustaw EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=587, EMAIL_SECURE=false oraz poprawne haslo aplikacji Gmail.';
   }
 
   if (lowerMessage.includes('certificate') || lowerMessage.includes('self signed')) {
