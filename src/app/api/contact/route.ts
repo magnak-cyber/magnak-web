@@ -16,11 +16,6 @@ function isValidEmail(email: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const setupError = getMailerSetupError();
-    if (setupError) {
-      return NextResponse.json({ message: setupError }, { status: 500 });
-    }
-
     const formData = await req.formData();
 
     const name = (formData.get('name') as string | null)?.trim() || '';
@@ -59,7 +54,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    await createOrder({
+    const order = await createOrder({
       name,
       phone,
       email,
@@ -77,6 +72,24 @@ export async function POST(req: NextRequest) {
           }
         : null,
     });
+
+    const setupError = getMailerSetupError();
+    if (setupError) {
+      console.error('Order saved, but email transport is not configured.', {
+        orderId: order.id,
+        setupError,
+      });
+
+      return NextResponse.json(
+        {
+          message: 'Zamowienie zostalo zapisane. Powiadomienia email sa chwilowo niedostepne.',
+          orderSaved: true,
+          emailSent: false,
+        },
+        { status: 200 }
+      );
+    }
+
     const settings = await getAdminSiteSettings();
     const origin = `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`;
     const logoUrl = getAbsoluteStableLogoUrl(origin);
@@ -84,37 +97,59 @@ export async function POST(req: NextRequest) {
       ? `${attachedFile.name} (${(attachedFile.size / 1024 / 1024).toFixed(2)} MB)`
       : null;
 
-    await sendMail({
-      from: process.env.EMAIL_USER,
-      to: settings.notificationEmail,
-      subject: `Nowe zamowienie | ${settings.companyName} | ${name}`,
-      html: buildAdminOrderEmail({
-        settings,
-        logoUrl,
-        name,
-        phone,
-        email,
-        location,
-        packageType,
-        startDate,
-        additionalInfo,
-        attachmentLabel,
-      }),
-      attachments,
-    });
+    try {
+      await sendMail({
+        from: process.env.EMAIL_USER,
+        to: settings.notificationEmail,
+        subject: `Nowe zamowienie | ${settings.companyName} | ${name}`,
+        html: buildAdminOrderEmail({
+          settings,
+          logoUrl,
+          name,
+          phone,
+          email,
+          location,
+          packageType,
+          startDate,
+          additionalInfo,
+          attachmentLabel,
+        }),
+        attachments,
+      });
 
-    await sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: `Potwierdzenie zamowienia | ${settings.companyName}`,
-      html: buildCustomerOrderEmail({
-        settings,
-        logoUrl,
-        name,
-      }),
-    });
+      await sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: `Potwierdzenie zamowienia | ${settings.companyName}`,
+        html: buildCustomerOrderEmail({
+          settings,
+          logoUrl,
+          name,
+        }),
+      });
+    } catch (mailError) {
+      const emailMessage = formatMailerError(mailError);
 
-    return NextResponse.json({ message: 'Email sent successfully!' }, { status: 200 });
+      console.error('Order saved, but sending emails failed.', {
+        orderId: order.id,
+        emailMessage,
+      });
+
+      return NextResponse.json(
+        {
+          message: 'Zamowienie zostalo zapisane. Powiadomienia email sa chwilowo niedostepne.',
+          orderSaved: true,
+          emailSent: false,
+          emailError: emailMessage,
+        },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: 'Email sent successfully!', orderSaved: true, emailSent: true },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error processing contact request:', error);
     const message = formatMailerError(error);
