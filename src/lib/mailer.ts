@@ -28,13 +28,22 @@ function isGmailHost(host: string) {
 
 export function getMailerConfig() {
   const port = parsePort(normalizeEnvValue(process.env.EMAIL_PORT) || '465');
+  const host = normalizeEnvValue(process.env.EMAIL_HOST) || 'smtp.gmail.com';
   const secureEnv = normalizeEnvValue(process.env.EMAIL_SECURE).toLowerCase();
   const user = normalizeEnvValue(process.env.EMAIL_USER);
+  const secure =
+    isGmailHost(host) && port === 587
+      ? false
+      : isGmailHost(host) && port === 465
+        ? true
+        : secureEnv
+          ? isTruthy(secureEnv)
+          : port === 465;
 
   return {
-    host: normalizeEnvValue(process.env.EMAIL_HOST) || 'smtp.gmail.com',
+    host,
     port,
-    secure: secureEnv ? secureEnv === 'true' : port === 465,
+    secure,
     user,
     pass: normalizeEnvValue(process.env.EMAIL_PASS),
     from: normalizeEnvValue(process.env.EMAIL_FROM) || user,
