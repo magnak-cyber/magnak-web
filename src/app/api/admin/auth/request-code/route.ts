@@ -34,7 +34,6 @@ export async function POST(req: NextRequest) {
     const logoUrl = getAbsoluteStableLogoUrl(origin);
 
     await sendMail({
-      from: process.env.EMAIL_USER,
       to: safeEmail,
       subject: `Kod logowania | ${settings.companyName}`,
       html: buildAdminCodeEmail({ settings, logoUrl, code }),

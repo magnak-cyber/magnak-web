@@ -99,7 +99,6 @@ export async function POST(req: NextRequest) {
 
     try {
       await sendMail({
-        from: process.env.EMAIL_USER,
         to: settings.notificationEmail,
         subject: `Nowe zamowienie | ${settings.companyName} | ${name}`,
         html: buildAdminOrderEmail({
@@ -118,7 +117,6 @@ export async function POST(req: NextRequest) {
       });
 
       await sendMail({
-        from: process.env.EMAIL_USER,
         to: email,
         subject: `Potwierdzenie zamowienia | ${settings.companyName}`,
         html: buildCustomerOrderEmail({

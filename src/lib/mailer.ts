@@ -1,5 +1,14 @@
-import nodemailer from 'nodemailer';
-import type Mail from 'nodemailer/lib/mailer';
+import { Resend } from 'resend';
+
+type MailAttachment = {
+  filename?: string | false;
+  content?: string | Buffer;
+  path?: string;
+  contentType?: string;
+  content_type?: string;
+  contentId?: string;
+  content_id?: string;
+};
 
 function normalizeEnvValue(value: string | undefined) {
   const trimmed = value?.trim() || '';
@@ -18,186 +27,113 @@ function normalizeEnvValue(value: string | undefined) {
   return trimmed;
 }
 
-function parseSecureFlag(value: string, port: number) {
-  if (!value) {
-    return port === 465;
+function getResendClient() {
+  const apiKey = normalizeEnvValue(process.env.RESEND_API_KEY);
+
+  if (!apiKey) {
+    return null;
   }
 
-  return value.toLowerCase() === 'true';
-}
-
-function normalizePassword(value: string | undefined, host: string) {
-  const normalized = normalizeEnvValue(value);
-
-  if (!normalized) {
-    return '';
-  }
-
-  if (host.includes('gmail')) {
-    return normalized.replace(/\s+/g, '');
-  }
-
-  return normalized;
+  return new Resend(apiKey);
 }
 
 export function getMailerConfig() {
-  const host = normalizeEnvValue(process.env.EMAIL_HOST) || 'smtp.gmail.com';
-  const port = Number.parseInt(normalizeEnvValue(process.env.EMAIL_PORT) || '465', 10);
-  const secure = parseSecureFlag(normalizeEnvValue(process.env.EMAIL_SECURE), port);
-  const user = normalizeEnvValue(process.env.EMAIL_USER);
-  const pass = normalizePassword(process.env.EMAIL_PASS, host);
-
   return {
-    host,
-    port,
-    secure,
-    user,
-    pass,
+    apiKey: normalizeEnvValue(process.env.RESEND_API_KEY),
+    from: normalizeEnvValue(process.env.EMAIL_FROM) || 'onboarding@resend.dev',
+    to: normalizeEnvValue(process.env.EMAIL_RECEIVER),
   };
 }
 
-function createConfiguredTransport() {
-  const config = getMailerConfig();
-
-  return nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-    tls: {
-      minVersion: 'TLSv1.2',
-      servername: config.host,
-    },
-  });
-}
-
-function createGmailStartTlsTransport() {
-  const config = getMailerConfig();
-
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-    tls: {
-      minVersion: 'TLSv1.2',
-      servername: 'smtp.gmail.com',
-    },
-  });
-}
-
-function createGmailServiceTransport() {
-  const config = getMailerConfig();
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: config.user,
-      pass: config.pass,
-    },
-  });
-}
-
-function shouldRetryWithGmailFallback(error: unknown) {
-  const config = getMailerConfig();
-  const message = error instanceof Error ? error.message : String(error);
-  const lowerMessage = message.toLowerCase();
-
-  if (!config.host.includes('gmail')) {
-    return false;
+function toResendAttachments(attachments: MailAttachment[] | undefined) {
+  if (!attachments?.length) {
+    return undefined;
   }
 
-  return (
-    lowerMessage.includes('tlsv1 alert internal error') ||
-    lowerMessage.includes('ssl3_read_bytes') ||
-    lowerMessage.includes('ssl alert number 80') ||
-    lowerMessage.includes('esocket')
-  );
+  return attachments.map((attachment) => ({
+    filename: attachment.filename,
+    content: attachment.content,
+    path: attachment.path,
+    contentType: attachment.contentType || attachment.content_type,
+    contentId: attachment.contentId || attachment.content_id,
+  }));
 }
 
-export async function sendMail(mailOptions: Mail.Options) {
-  try {
-    return await createConfiguredTransport().sendMail(mailOptions);
-  } catch (firstError) {
-    if (!shouldRetryWithGmailFallback(firstError)) {
-      throw firstError;
-    }
+export async function sendMail(mailOptions: {
+  from?: string;
+  to: string | string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  attachments?: MailAttachment[];
+  replyTo?: string | string[];
+}) {
+  const resend = getResendClient();
 
-    try {
-      return await createGmailStartTlsTransport().sendMail(mailOptions);
-    } catch (secondError) {
-      try {
-        return await createGmailServiceTransport().sendMail(mailOptions);
-      } catch (thirdError) {
-        const firstMessage = firstError instanceof Error ? firstError.message : String(firstError);
-        const secondMessage = secondError instanceof Error ? secondError.message : String(secondError);
-        const thirdMessage = thirdError instanceof Error ? thirdError.message : String(thirdError);
-
-        throw new Error(
-          `SMTP fallback failed. primary=${firstMessage}; starttls=${secondMessage}; gmail_service=${thirdMessage}`
-        );
-      }
-    }
+  if (!resend) {
+    throw new Error('Brakuje konfiguracji Resend: RESEND_API_KEY.');
   }
+
+  const from = normalizeEnvValue(mailOptions.from) || getMailerConfig().from;
+
+  const payload = {
+    from,
+    to: mailOptions.to,
+    subject: mailOptions.subject,
+    ...(mailOptions.html ? { html: mailOptions.html } : {}),
+    ...(mailOptions.text ? { text: mailOptions.text } : {}),
+    ...(mailOptions.replyTo ? { replyTo: mailOptions.replyTo } : {}),
+    ...(mailOptions.attachments?.length
+      ? { attachments: toResendAttachments(mailOptions.attachments) }
+      : {}),
+  };
+
+  const result = await resend.emails.send(payload as Parameters<typeof resend.emails.send>[0]);
+
+  if (result.error) {
+    throw new Error(result.error.message || 'Resend wyslal blad.');
+  }
+
+  return result.data;
 }
 
 export function getMailerSetupError() {
   const config = getMailerConfig();
   const missing: string[] = [];
 
-  if (!config.user) {
-    missing.push('EMAIL_USER');
+  if (!config.apiKey) {
+    missing.push('RESEND_API_KEY');
   }
 
-  if (!config.pass) {
-    missing.push('EMAIL_PASS');
+  if (!config.from) {
+    missing.push('EMAIL_FROM');
   }
 
-  if (!config.host) {
-    missing.push('EMAIL_HOST');
-  }
-
-  if (!config.port || Number.isNaN(config.port)) {
-    missing.push('EMAIL_PORT');
+  if (!config.to) {
+    missing.push('EMAIL_RECEIVER');
   }
 
   if (!missing.length) {
     return null;
   }
 
-  return `Brakuje konfiguracji SMTP: ${missing.join(', ')}.`;
+  return `Brakuje konfiguracji Resend: ${missing.join(', ')}.`;
 }
 
 export function formatMailerError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const lowerMessage = message.toLowerCase();
 
-  if (lowerMessage.includes('smtp fallback failed')) {
-    return `Blad SMTP Gmail po wszystkich probach. Szczegoly: ${message}`;
+  if (lowerMessage.includes('missing api key')) {
+    return 'Brakuje RESEND_API_KEY w Vercel.';
   }
 
-  if (lowerMessage.includes('tlsv1 alert internal error') || lowerMessage.includes('ssl3_read_bytes')) {
-    return 'Blad polaczenia SMTP z Gmail. Ustaw w Vercel EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=587, EMAIL_SECURE=false oraz poprawne haslo aplikacji Gmail.';
+  if (lowerMessage.includes('invalid_from_address') || lowerMessage.includes('from')) {
+    return 'EMAIL_FROM musi byc zweryfikowanym adresem w Resend albo onboarding@resend.dev do testow.';
   }
 
-  if (
-    lowerMessage.includes('invalid login') ||
-    lowerMessage.includes('invalid credentials') ||
-    lowerMessage.includes('authentication failed') ||
-    lowerMessage.includes('username and password not accepted')
-  ) {
-    return 'Blad logowania do skrzynki SMTP. Sprawdz EMAIL_USER i EMAIL_PASS.';
-  }
-
-  if (lowerMessage.includes('certificate')) {
-    return 'Blad certyfikatu SMTP. Sprawdz konfiguracje TLS dla skrzynki pocztowej.';
+  if (lowerMessage.includes('monthly_quota_exceeded') || lowerMessage.includes('daily_quota_exceeded')) {
+    return 'Przekroczono limit wysylki Resend.';
   }
 
   return message;
