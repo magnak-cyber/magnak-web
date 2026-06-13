@@ -1,4 +1,5 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
+import { normalizeEnvValue } from '@/lib/env';
 
 type MailAttachment = {
   filename?: string | false;
@@ -10,42 +11,29 @@ type MailAttachment = {
   content_id?: string;
 };
 
-function normalizeEnvValue(value: string | undefined) {
-  const trimmed = value?.trim() || '';
+function parsePort(value: string) {
+  const parsed = Number.parseInt(value, 10);
 
-  if (!trimmed) {
-    return '';
-  }
-
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1).trim();
-  }
-
-  return trimmed;
-}
-
-function getResendClient() {
-  const apiKey = normalizeEnvValue(process.env.RESEND_API_KEY);
-
-  if (!apiKey) {
-    return null;
-  }
-
-  return new Resend(apiKey);
+  return Number.isFinite(parsed) ? parsed : 465;
 }
 
 export function getMailerConfig() {
+  const port = parsePort(normalizeEnvValue(process.env.EMAIL_PORT) || '465');
+  const secureEnv = normalizeEnvValue(process.env.EMAIL_SECURE).toLowerCase();
+  const user = normalizeEnvValue(process.env.EMAIL_USER);
+
   return {
-    apiKey: normalizeEnvValue(process.env.RESEND_API_KEY),
-    from: normalizeEnvValue(process.env.EMAIL_FROM) || 'onboarding@resend.dev',
+    host: normalizeEnvValue(process.env.EMAIL_HOST) || 'smtp.gmail.com',
+    port,
+    secure: secureEnv ? secureEnv === 'true' : port === 465,
+    user,
+    pass: normalizeEnvValue(process.env.EMAIL_PASS),
+    from: normalizeEnvValue(process.env.EMAIL_FROM) || user,
     to: normalizeEnvValue(process.env.EMAIL_RECEIVER),
   };
 }
 
-function toResendAttachments(attachments: MailAttachment[] | undefined) {
+function toMailAttachments(attachments: MailAttachment[] | undefined) {
   if (!attachments?.length) {
     return undefined;
   }
@@ -68,41 +56,50 @@ export async function sendMail(mailOptions: {
   attachments?: MailAttachment[];
   replyTo?: string | string[];
 }) {
-  const resend = getResendClient();
-
-  if (!resend) {
-    throw new Error('Brakuje konfiguracji Resend: RESEND_API_KEY.');
-  }
-
-  const from = normalizeEnvValue(mailOptions.from) || getMailerConfig().from;
+  const config = getMailerConfig();
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
 
   const payload = {
-    from,
+    from: normalizeEnvValue(mailOptions.from) || config.from,
     to: mailOptions.to,
     subject: mailOptions.subject,
     ...(mailOptions.html ? { html: mailOptions.html } : {}),
     ...(mailOptions.text ? { text: mailOptions.text } : {}),
     ...(mailOptions.replyTo ? { replyTo: mailOptions.replyTo } : {}),
     ...(mailOptions.attachments?.length
-      ? { attachments: toResendAttachments(mailOptions.attachments) }
+      ? { attachments: toMailAttachments(mailOptions.attachments) }
       : {}),
   };
 
-  const result = await resend.emails.send(payload as Parameters<typeof resend.emails.send>[0]);
-
-  if (result.error) {
-    throw new Error(result.error.message || 'Resend wyslal blad.');
-  }
-
-  return result.data;
+  return transporter.sendMail(payload);
 }
 
 export function getMailerSetupError() {
   const config = getMailerConfig();
   const missing: string[] = [];
 
-  if (!config.apiKey) {
-    missing.push('RESEND_API_KEY');
+  if (!config.host) {
+    missing.push('EMAIL_HOST');
+  }
+
+  if (!config.port) {
+    missing.push('EMAIL_PORT');
+  }
+
+  if (!config.user) {
+    missing.push('EMAIL_USER');
+  }
+
+  if (!config.pass) {
+    missing.push('EMAIL_PASS');
   }
 
   if (!config.from) {
@@ -117,23 +114,36 @@ export function getMailerSetupError() {
     return null;
   }
 
-  return `Brakuje konfiguracji Resend: ${missing.join(', ')}.`;
+  return `Brakuje konfiguracji SMTP: ${missing.join(', ')}.`;
 }
 
 export function formatMailerError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const lowerMessage = message.toLowerCase();
 
-  if (lowerMessage.includes('missing api key')) {
-    return 'Brakuje RESEND_API_KEY w Vercel.';
+  if (lowerMessage.includes('missing credentials')) {
+    return 'Brakuje danych logowania SMTP. Ustaw EMAIL_USER i EMAIL_PASS w Vercel.';
   }
 
-  if (lowerMessage.includes('invalid_from_address') || lowerMessage.includes('from')) {
-    return 'EMAIL_FROM musi byc zweryfikowanym adresem w Resend albo onboarding@resend.dev do testow.';
+  if (
+    lowerMessage.includes('invalid login') ||
+    lowerMessage.includes('badcredentials') ||
+    lowerMessage.includes('username and password not accepted')
+  ) {
+    return 'Gmail odrzucil logowanie SMTP. Sprawdz EMAIL_USER i haslo aplikacji w EMAIL_PASS.';
   }
 
-  if (lowerMessage.includes('monthly_quota_exceeded') || lowerMessage.includes('daily_quota_exceeded')) {
-    return 'Przekroczono limit wysylki Resend.';
+  if (
+    lowerMessage.includes('ssl3_read_bytes') ||
+    lowerMessage.includes('tlsv1 alert') ||
+    lowerMessage.includes('esocket') ||
+    lowerMessage.includes('wrong version number')
+  ) {
+    return 'Blad polaczenia SMTP z Gmail. Ustaw EMAIL_HOST=smtp.gmail.com, EMAIL_PORT=465, EMAIL_SECURE=true oraz poprawne haslo aplikacji Gmail.';
+  }
+
+  if (lowerMessage.includes('certificate') || lowerMessage.includes('self signed')) {
+    return 'Blad certyfikatu podczas polaczenia SMTP. Sprawdz ustawienia Gmail SMTP oraz bezpieczne polaczenie TLS.';
   }
 
   return message;

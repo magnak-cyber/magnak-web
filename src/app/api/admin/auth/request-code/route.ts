@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEmailOtp, validateAdminEmail } from '@/lib/adminAuth';
 import { buildAdminCodeEmail } from '@/lib/emailTemplates';
-import { formatMailerError, getMailerSetupError, sendMail } from '@/lib/mailer';
+import { getMailerSetupError, sendMail } from '@/lib/mailer';
+import { formatServiceError } from '@/lib/serviceErrors';
 import { getAbsoluteStableLogoUrl, getPublicSiteSettings } from '@/lib/siteSettingsStore';
 
 export const runtime = 'nodejs';
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: 'Code sent to admin email.' });
   } catch (error) {
-    const message = formatMailerError(error);
+    const message = formatServiceError(error);
     return NextResponse.json({ message }, { status: 500 });
   }
 }

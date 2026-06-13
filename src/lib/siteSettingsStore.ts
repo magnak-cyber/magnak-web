@@ -2,7 +2,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
 import { Collection } from 'mongodb';
-import { getDb } from '@/lib/mongodb';
+import { normalizeEnvValue } from '@/lib/env';
+import { getDb, hasMongoUri } from '@/lib/mongodb';
 import {
   AdminSiteSettings,
   BrandingAssetDocument,
@@ -28,7 +29,7 @@ const MAX_LOGO_HEIGHT = 1200;
 const MAX_FAVICON_SIZE = 256;
 
 function canUseMongo() {
-  return Boolean(process.env.MONGODB_URI);
+  return hasMongoUri();
 }
 
 function parseEmailList(value: string | undefined) {
@@ -54,9 +55,9 @@ function getDefaultAdminEmails() {
   }
 
   return dedupeEmails([
-    process.env.ADMIN_EMAIL?.trim().toLowerCase() || '',
-    process.env.EMAIL_RECEIVER?.trim().toLowerCase() || '',
-    process.env.EMAIL_USER?.trim().toLowerCase() || '',
+    normalizeEnvValue(process.env.ADMIN_EMAIL).toLowerCase(),
+    normalizeEnvValue(process.env.EMAIL_RECEIVER).toLowerCase(),
+    normalizeEnvValue(process.env.EMAIL_USER).toLowerCase(),
     DEFAULT_PUBLIC_EMAIL,
   ]);
 }

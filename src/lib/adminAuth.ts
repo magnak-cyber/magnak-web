@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import { Collection } from 'mongodb';
-import { getDb } from '@/lib/mongodb';
+import { normalizeEnvValue } from '@/lib/env';
+import { getDb, hasMongoUri } from '@/lib/mongodb';
 import { getAllowedAdminEmails } from '@/lib/siteSettingsStore';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -30,14 +31,14 @@ type GlobalAdminAuth = typeof globalThis & {
 const globalForAdminAuth = globalThis as GlobalAdminAuth;
 
 function getSessionSecret() {
-  return process.env.ADMIN_SESSION_SECRET || process.env.EMAIL_PASS || 'change-this-session-secret';
+  return normalizeEnvValue(process.env.ADMIN_SESSION_SECRET) || normalizeEnvValue(process.env.EMAIL_PASS) || 'change-this-session-secret';
 }
 
 export function getAdminEmail() {
   return (
-    process.env.ADMIN_EMAIL?.trim().toLowerCase() ||
-    process.env.EMAIL_RECEIVER?.trim().toLowerCase() ||
-    process.env.EMAIL_USER?.trim().toLowerCase() ||
+    normalizeEnvValue(process.env.ADMIN_EMAIL).toLowerCase() ||
+    normalizeEnvValue(process.env.EMAIL_RECEIVER).toLowerCase() ||
+    normalizeEnvValue(process.env.EMAIL_USER).toLowerCase() ||
     'magnakglazurnictwo@gmail.com'
   );
 }
@@ -65,7 +66,7 @@ export function getAdminEmails() {
 
 export async function validateAdminEmail(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
-  const allowedEmails = process.env.MONGODB_URI ? await getAllowedAdminEmails() : getAdminEmails();
+  const allowedEmails = hasMongoUri() ? await getAllowedAdminEmails() : getAdminEmails();
   return allowedEmails.includes(normalizedEmail);
 }
 
@@ -91,7 +92,7 @@ function decodePayload(value: string) {
 }
 
 function shouldUseMongoOtpStore() {
-  return Boolean(process.env.MONGODB_URI);
+  return hasMongoUri();
 }
 
 function shouldUseMemoryOtpStore() {

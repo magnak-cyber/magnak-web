@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createOrder } from '@/lib/ordersStore';
 import { buildAdminOrderEmail, buildCustomerOrderEmail } from '@/lib/emailTemplates';
 import { formatMailerError, getMailerSetupError, sendMail } from '@/lib/mailer';
+import { formatServiceError } from '@/lib/serviceErrors';
 import { getAbsoluteStableLogoUrl, getAdminSiteSettings } from '@/lib/siteSettingsStore';
 
 export const runtime = 'nodejs';
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error('Error processing contact request:', error);
-    const message = formatMailerError(error);
+    const message = formatServiceError(error);
     return NextResponse.json(
       { message },
       { status: 500 }
